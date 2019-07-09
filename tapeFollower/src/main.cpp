@@ -159,18 +159,3 @@ void loop() {
 //   else
 //     drive(0,0,0,0);
 // }
-
-// void loop() {   
-//   farLeft = digitalRead(FAR_LEFT);
-//   leftValue = digitalRead(LEFT_SENSOR);
-//   rightValue = digitalRead(RIGHT_SENSOR);
-//   farRight = digitalRead(FAR_RIGHT);
-  
-
-//   Serial.print((int)farLeft);
-//   Serial.print((int)leftValue);
-//   Serial.print((int)rightValue);
-//   Serial.println((int)farRight);
-
-//   delay(500);
-// }
