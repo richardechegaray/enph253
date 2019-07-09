@@ -13,6 +13,6 @@ float pid::output_pid(float error){
     i = ki*(error + i);
     if (i > i_limit) {i = i_limit;};
     if (i < -i_limit) {i = -i_limit;};
-    steer = p + i + d;
-    return steer;
+    speed = p + i + d;
+    return speed;
 }

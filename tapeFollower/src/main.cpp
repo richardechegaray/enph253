@@ -2,10 +2,10 @@
 #include <Arduino.h>
 #include <pid.h>
 
-#define LEFT_SENSOR PB13 
+#define FAR_LEFT PB12
+#define LEFT_SENSOR PB13  
 #define RIGHT_SENSOR PB14
 #define FAR_RIGHT PB15
-#define FAR_LEFT PB12
 
 #define LEFT_MOTOR_FW PB_9 
 #define LEFT_MOTOR_BW PB_8
@@ -19,14 +19,16 @@
 
 float clockFreq = 100000;
 float period = 1000;
-float target_speed = period * 0.2;
+float target_speed = period/3;
 
-float forwardSpeed = period/4;
-float turnSpeedWeakSide = period/5;
-float turnSpeedStrongSide = 3*period/5;
+float forwardSpeed = period/5;
+float turnSpeedWeakSide = period/6;
+float turnSpeedStrongSide = period/3;
 
 float leftValue = 0.0;
 float rightValue = 0.0;
+float farLeft = 0.0;
+float farRight = 0.0;
 
 float leftError = 0.0;
 float rightError = 0.0;
@@ -34,10 +36,13 @@ float rightError = 0.0;
 float leftBuffer[BUFFER_SIZE];
 float rightBuffer[BUFFER_SIZE];
 
+pid p_i_d;
+
 enum state { onTrack, leftOff, rightOff, turnLeft, turnRight, white, error } currentState, previousState;
 
 void setup() {
     Serial.begin(115200);
+
     pinMode(LEFT_SENSOR, INPUT_PULLUP); 
     pinMode(RIGHT_SENSOR, INPUT_PULLUP); 
     pinMode(FAR_LEFT, INPUT_PULLUP);
@@ -53,7 +58,7 @@ void setup() {
     pwm_start(RIGHT_MOTOR_FW, clockFreq, period, 0, 1); 
     pwm_start(RIGHT_MOTOR_BW, clockFreq, period, 0, 1); 
     previousState = onTrack;
-    //p_i_d = pid();
+    p_i_d = pid();
 }
 
 state getState(float left, float right){
@@ -101,7 +106,7 @@ void loop() {
   rightValue = digitalRead(RIGHT_SENSOR);
 
   currentState = getState(leftValue, rightValue);
-  Serial.println(currentState);
+  //Serial.println(currentState);
 
   switch ( currentState ) { //state machine
 
@@ -135,10 +140,10 @@ void loop() {
       drive(0, forwardSpeed, forwardSpeed, 0); //spin clockwise
       delay(3000);
       break;
-
-    previousState = currentState;
-  }
-
+    
+      previousState = currentState;
+    
+  } 
 }
 
 // void loop() {
@@ -153,4 +158,19 @@ void loop() {
 //     drive(0, 0, 0, forwardSpeed);
 //   else
 //     drive(0,0,0,0);
+// }
+
+// void loop() {   
+//   farLeft = digitalRead(FAR_LEFT);
+//   leftValue = digitalRead(LEFT_SENSOR);
+//   rightValue = digitalRead(RIGHT_SENSOR);
+//   farRight = digitalRead(FAR_RIGHT);
+  
+
+//   Serial.print((int)farLeft);
+//   Serial.print((int)leftValue);
+//   Serial.print((int)rightValue);
+//   Serial.println((int)farRight);
+
+//   delay(500);
 // }
