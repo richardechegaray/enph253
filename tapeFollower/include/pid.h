@@ -8,5 +8,5 @@ class pid{
         float i_limit;
         //float i_sum;
         float prev_error;
-        float steer;
+        float speed;
 };
