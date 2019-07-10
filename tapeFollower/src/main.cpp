@@ -1,3 +1,5 @@
+//right wheel tends to be faster when speeds are set to be equal
+
 #include <Wire.h>
 #include <Arduino.h>
 #include <pid.h>
@@ -19,26 +21,31 @@
 
 float clockFreq = 100000;
 float period = 1000;
-float target_speed = period/3;
 
-float forwardSpeed = period/5;
-float turnSpeedWeakSide = period/6;
-float turnSpeedStrongSide = period/3;
+float targetSpeed = period/4;
+float leftSpeed = targetSpeed;
+float rightSpeed = targetSpeed;
+
+// float forwardSpeed = period/6;
+// float turnSpeedWeakSide = period/7;
+// float turnSpeedStrongSide = period/4;
 
 float leftValue = 0.0;
 float rightValue = 0.0;
 float farLeft = 0.0;
 float farRight = 0.0;
 
-float leftError = 0.0;
-float rightError = 0.0;
+float error = 0.0;
 
 float leftBuffer[BUFFER_SIZE];
 float rightBuffer[BUFFER_SIZE];
 
 pid p_i_d;
 
-enum state { onTrack, leftOff, rightOff, turnLeft, turnRight, white, error } currentState, previousState;
+enum state { onTrack, leftOff, rightOff, turnLeft, turnRight, white, malfunc } currentState, previousState;
+
+float speedVerification(float speed); //add for all functions
+
 
 void setup() {
     Serial.begin(115200);
@@ -62,7 +69,6 @@ void setup() {
 }
 
 state getState(float left, float right){
-
   //if, turn logic right here, separate if statement
 
   if ( (left == ON) && (right == ON) )
@@ -71,34 +77,29 @@ state getState(float left, float right){
     return leftOff;
   else if ( (right == OFF) && (left == ON) )
     return rightOff;
-  else if ( (left == OFF ) && (right == OFF) )
+  else 
     return white;
-  else {
-    Serial.println("Error with digitalReading");
-    return error;
-  }
-}
-
-float read_mean(float arr[]){
-    float sum = 0;
-    for(unsigned i = 0; i< BUFFER_SIZE; i++){
-        sum += arr[i];
-    }
-    return (float)sum/BUFFER_SIZE;
-}
-
-float reading(float arr[], int ir_sensor){
-    for(unsigned i = 0; i < BUFFER_SIZE; i++){
-        arr[i] = analogRead(ir_sensor);
-    }
-    return read_mean(arr);
 }
 
 void drive(float bwLeft, float fwLeft, float bwRight, float fwRight) {
+  bwLeft = speedVerification(bwLeft);
+  fwLeft = speedVerification(fwLeft);
+  bwRight = speedVerification(bwRight);
+  fwRight = speedVerification(fwRight);
+    
   pwm_start(LEFT_MOTOR_BW, clockFreq, period, bwLeft, 0); 
   pwm_start(LEFT_MOTOR_FW, clockFreq, period, fwLeft, 0); 
   pwm_start(RIGHT_MOTOR_BW, clockFreq, period, bwRight, 0); 
   pwm_start(RIGHT_MOTOR_FW, clockFreq, period, fwRight, 0); 
+}
+
+float speedVerification(float speed) {
+  if (speed<0)
+    return period/12;
+  else if (speed>period)
+    return period;
+  else 
+    return speed;
 }
 
 void loop() {
@@ -106,56 +107,73 @@ void loop() {
   rightValue = digitalRead(RIGHT_SENSOR);
 
   currentState = getState(leftValue, rightValue);
+  
   //Serial.println(currentState);
 
   switch ( currentState ) { //state machine
 
     case onTrack : //drive straight
-      drive(0, forwardSpeed, 0, forwardSpeed);
+      error = 0; 
+      leftSpeed = targetSpeed + p_i_d.output_pid(error);
+      rightSpeed = targetSpeed + p_i_d.output_pid(error);
+      Serial.println(error);
+      Serial.println(leftSpeed);
+      Serial.println(rightSpeed);
+      Serial.println();
+      drive(0, leftSpeed, 0, rightSpeed);
       break;
 
     case leftOff : //turn right
-      drive(0, turnSpeedStrongSide, 0, turnSpeedWeakSide); //left needs to catch up, right side weaker
+      error = 1; 
+      leftSpeed = targetSpeed + p_i_d.output_pid(error);
+      rightSpeed = targetSpeed + p_i_d.output_pid(-error);
+      Serial.println(error);
+      Serial.println(leftSpeed);
+      Serial.println(rightSpeed);
+      Serial.println();
+      drive(0, leftSpeed, 0, rightSpeed); //left needs to catch up, right side weaker
       break;
 
     case rightOff : //turn left
-      drive(0, turnSpeedWeakSide, 0, turnSpeedStrongSide); //left weaker, right needs to catch up
+      error = 1; 
+      leftSpeed = targetSpeed + p_i_d.output_pid(-error);
+      rightSpeed = targetSpeed + p_i_d.output_pid(error);
+      Serial.println(error);
+      Serial.println(leftSpeed);
+      Serial.println(rightSpeed);
+      Serial.println();
+      drive(0, leftSpeed, 0, rightSpeed); //left weaker, right needs to catch up 
       break;
 
     case white : //both sensors off tape
-      if(previousState == leftOff)      // continue to turn right
-        drive(0, turnSpeedStrongSide, 0, turnSpeedWeakSide); //left needs to catch up, right side weaker
-      else if(previousState == rightOff)  // continue to turn left
-        drive(0, turnSpeedWeakSide, 0, turnSpeedStrongSide); //left weaker, right needs to catch up
-      else 
+      error = 5;
+      if(previousState == leftOff) {  // continue to turn right
+        leftSpeed = targetSpeed + p_i_d.output_pid(error);
+        rightSpeed = targetSpeed + p_i_d.output_pid(-error);
+        drive(0, leftSpeed, 0, rightSpeed); //left needs to catch up, right side weaker
+      } else if(previousState == rightOff) {  // continue to turn left
+        leftSpeed = targetSpeed + p_i_d.output_pid(-error);
+        rightSpeed = targetSpeed + p_i_d.output_pid(error);
+        drive(0, leftSpeed, 0, rightSpeed); //left weaker, right needs to catch up
+      } else {
         drive(0, 0, 0, 0); // do nothing
-      break;
-
-    case error:
-      drive(forwardSpeed, 0, 0, forwardSpeed); //spin counterclockwise
-      delay(3000);
+        delay(2000); //if it stops this means it went from both on, to both off....
+      }
+      Serial.println(error);
+      Serial.println(leftSpeed);
+      Serial.println(rightSpeed);
+      Serial.println();
       break;
 
     default:
-      drive(0, forwardSpeed, forwardSpeed, 0); //spin clockwise
-      delay(3000);
-      break;
-    
-      previousState = currentState;
-    
-  } 
+      drive(0, period/3, period/3, 0); //spin for 5 seconds
+      Serial.println("Default");
+      delay(2000);  // this should never happen...
+      break;  
+
+  }
+
+  if (currentState != white) //if currentState is white, then don't update previousState so that we will keep on turning left or right to correct moving off the tape
+    previousState = currentState;
+
 }
-
-// void loop() {
-//   leftValue = digitalRead(LEFT_SENSOR);
-//   rightValue = digitalRead(RIGHT_SENSOR);
-
-//   if ((leftValue && rightValue) == ON)
-//     drive(0,forwardSpeed, 0, forwardSpeed);
-//   else if (leftValue == ON)
-//     drive(0,forwardSpeed, 0, 0);
-//   else if (rightValue == ON)
-//     drive(0, 0, 0, forwardSpeed);
-//   else
-//     drive(0,0,0,0);
-// }

@@ -2,12 +2,18 @@
 #include "pid.h"
 
 pid::pid(){
-    kp = 1;
-    ki = 0; kd = 0; p = 0; i = 0; d = 0; i_limit = 0; prev_error = 0;
+    kp = 40;
+    ki = 0; 
+    kd = 35; 
+    p = 0; 
+    i = 0; 
+    d = 0; 
+    i_limit = 0; 
+    prev_error = 0;
 }
 
 float pid::output_pid(float error){
-    prev_error = error;
+    prev_error = error; 
     p = kp*error;
     d = kd*(error - prev_error);
     i = ki*(error + i);
