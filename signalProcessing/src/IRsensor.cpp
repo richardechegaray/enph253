@@ -5,6 +5,10 @@
 float raw_sample [SIZE];
 float waveform [2*SIZE];
 
+IRsensor::IRsensor(){
+    return;
+}
+
 IRsensor::IRsensor(int set_pin, int mode){
     pin = set_pin;
     pinMode(pin, INPUT);

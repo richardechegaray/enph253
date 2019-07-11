@@ -1,8 +1,13 @@
 #include <Arduino.h>
 //#include <robot.cpp>
-#include "WheelRotary.h"
-#define PIN0 PA0
-#define PIN1 PA1
+// #include "WheelRotary.h"
+#include "IRdecision.h"
+// #define PIN0 PA0
+// #define PIN1 PA1
+
+#define PIN_LEFT PA0
+#define PIN_CENTER PA1
+#define PIN_RIGHT PA2
 //note: every .h file in include/ can make use of https://github.com/danieleff/STM32GENERIC/tree/master/STM32/libraries
 //Robot sample_robot = Robot();
 
@@ -34,20 +39,48 @@
 //       break;  
 //   }
 // }
-WheelRotary wheelRotary = WheelRotary(PIN0, PIN1);
-unsigned rot = 0;
+// WheelRotary wheelRotary = WheelRotary(PIN0, PIN1);
+// unsigned rot = 0;
+
+IRdecision decision = IRdecision(PIN_LEFT, PIN_CENTER, PIN_RIGHT, 10);
+
 void setup(){
   Serial.begin(115200); 
+  Serial.println("Setup done");
 }
 
 void loop() { 
+  float left_correlation, center_correlation, right_correlation;
+  left_correlation = decision.corrleft;
+  center_correlation = decision.corrcenter;
+  right_correlation = decision.corrright;
+
+  Serial.print("left: ");
+  Serial.println(left_correlation);
+
+  Serial.print("center: ");
+  Serial.println(center_correlation);
+
+  Serial.print("right: ");
+  Serial.println(right_correlation);
+
+  int max_pin;
+  max_pin = decision.strongest_signal();
+
+  Serial.print("max correlating pin: ");
+  Serial.println(max_pin);
+
+  
+  
   // rot = wheelRotary.countA(PIN0, PIN1);
   // Serial.print("rotation:");
   // Serial.println(rot); 
 
   // Serial.println();
-  wheelRotary.countA(PIN0, PIN1);
-  wheelRotary.countB(PIN0, PIN1);
-  Serial.println(wheelRotary.counter/96);
+  // wheelRotary.countA(PIN0, PIN1);
+  // wheelRotary.countB(PIN0, PIN1);
+  // Serial.println(wheelRotary.counter/96);
+
+
 }
 
