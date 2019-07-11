@@ -5,6 +5,7 @@ class IRdecision{
     private:
         IRsensor left, center, right;
         int mode;
+        int pinleft, pincenter, pinright;
     public:
         IRdecision(int, int, int, int);
 
