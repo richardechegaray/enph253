@@ -35,6 +35,8 @@ float rightValue = 0.0;
 float farLeftValue = 0.0;
 float farRightValue = 0.0;
 
+float turnCounter = 0.0;
+
 float error = 0.0;
 
 float leftBuffer[BUFFER_SIZE];
@@ -71,9 +73,9 @@ state getState(float left, float right, float farLeft, float farRight){
   //if, turn logic right here, separate if statement
   // if (farLeft == ON) //first check the branch cases to not miss any of the turns
   //   return turnLeft; //if we don't see a possible turn, then keep following the "obvious" tape path
+
   if ( farLeft == ON ) 
     return turnLeft;
-
 
   if ( (left == ON) && (right == ON) )
     return onTrack;
@@ -181,7 +183,8 @@ void loop() {
       break;
     
     case turnLeft :
-      error = 5;
+      error = 7;
+      turnCounter++;
       leftSpeed = targetSpeed + p_i_d.output_pid(-error);
       rightSpeed = targetSpeed + p_i_d.output_pid(error);
       Serial.println(error);
@@ -189,11 +192,11 @@ void loop() {
       Serial.println(rightSpeed);
       Serial.println();
       drive(0, leftSpeed, 0, rightSpeed); //left weaker, right needs to catch up 
-      delay(500); 
+      delay(200); 
       break;
 
-    case turnRight :
-      error = 5;
+    case turnRight : //not doing yet
+      error = 7;
       leftSpeed = targetSpeed + p_i_d.output_pid(error);
       rightSpeed = targetSpeed + p_i_d.output_pid(-error);
       Serial.println(error);
@@ -212,7 +215,9 @@ void loop() {
       break;  
 
   }
+  // onTrack, leftOff, rightOff, turnLeft, turnRight, white, malfunc... all states
   if (currentState != onTrack && currentState != white){
+    
     previousState = currentState;
   }
 }
