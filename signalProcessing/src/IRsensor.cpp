@@ -1,6 +1,6 @@
 #include <Arduino.h>
 #include "IRsensor.h"
-#define SIZE 200
+#define SIZE 100
 
 float raw_sample [SIZE];
 float waveform [2*SIZE];
@@ -9,17 +9,17 @@ IRsensor::IRsensor(){
     return;
 }
 
-IRsensor::IRsensor(int set_pin, int mode){
+IRsensor::IRsensor(int set_pin, int set_mode){
     pin = set_pin;
     pinMode(pin, INPUT);
 
     sample_size = SIZE; // the amount of values to collect into array for reading
 
-    mode = mode;
+    mode = set_mode;
     if (mode == 1){
         power = 3;
     }
-    if (mode == 10){
+    else if (mode == 10){
         power = 4;
     }
     else {
@@ -37,7 +37,7 @@ void IRsensor::corr(){
     time_start = micros();
     sample(pin);
     time_end = micros();
-    duration = time_end - time_start;
+    duration = (time_end - time_start)/(pow(10,6));
     time_per_sample = duration/sample_size;
 
     // find average of samples 
@@ -54,19 +54,43 @@ void IRsensor::corr(){
 
     // generate mode array
     for (int i = 0; i < (2*sample_size); i++){
-        waveform[i] = sin(2*PI*pow(10,power)/time_per_sample);
+        waveform[i] = sin(2*PI*pow(10,power)*i*time_per_sample);
     }
-
     // compare sample array to the generated array
     // correlation = IRsamples*waveform
-    float corr_values[2*sample_size] = {};
+    float corr_values[sample_size] = {};
     for (int m = 0; m < (sample_size); m++){
-        for (int n = 0; n < (2*sample_size); n++){
-            corr_values[m] = raw_sample[n]*waveform[m+n];
+        for (int n = 0; n < (sample_size); n++){
+            corr_values[m] += raw_sample[n]*waveform[m+n];
         }
     }
 
-    for (int i = 0; i < (2*sample_size); i++){
-        correlation += corr_values[i];
+    float highest_val = -1000.0;
+
+    for (float x : corr_values){
+        if (x > highest_val){
+            highest_val = x;
+        }
     }
+
+    // Serial.println("raw:");
+    // for (int i = 0; i < 10; i++){
+    //     Serial.println(raw_sample[i]);
+    // }
+
+    // Serial.println("wave:");
+    // for (int i = 0; i < 10; i++){
+    //     Serial.println(waveform[i]);
+    // }
+
+    // Serial.println("corr_values:");
+    // for (int i = 0; i < 10; i++){
+    //     Serial.println(corr_values[i]);
+    // }
+
+    correlation = highest_val;
+
+    // for (int i = 0; i < (2*sample_size); i++){
+    //     correlation += corr_values[i];
+    // }
 }

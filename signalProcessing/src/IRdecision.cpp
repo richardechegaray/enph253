@@ -10,7 +10,7 @@ IRdecision::IRdecision(int pin_left, int pin_center, int pin_right, int set_mode
     pincenter(pin_center),
     pinright(pin_right)
 {
-    
+
 }
 
 int IRdecision::strongest_signal(){
@@ -21,6 +21,8 @@ int IRdecision::strongest_signal(){
     corrleft = left.correlation;
     corrcenter = center.correlation;
     corrright = right.correlation;
+
+    max_pin = 0;
 
     if ((corrleft > corrcenter) && (corrleft > corrright)){
         max_pin = pinleft;
