@@ -1,5 +1,4 @@
 #include <Arduino.h>
-#include "IRsensor.h"
 #include "IRdecision.h"
 
 IRdecision::IRdecision(int pin_left, int pin_center, int pin_right, int set_mode){
@@ -7,9 +6,9 @@ IRdecision::IRdecision(int pin_left, int pin_center, int pin_right, int set_mode
     pinleft = pin_left;
     pincenter = pin_center;
     pinright = pin_right;
-    left = IRsensor::IRsensor(pinleft, mode);
-    center = IRsensor::IRsensor(pincenter, mode);
-    right = IRsensor::IRsensor(pinright, mode);
+    left = IRsensor(pinleft, mode);
+    center = IRsensor(pincenter, mode);
+    right = IRsensor(pinright, mode);
 }
 
 int IRdecision::strongest_signal(){

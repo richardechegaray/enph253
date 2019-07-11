@@ -5,6 +5,7 @@ class IRsensor{
         int pin;
         int mode;
     public:
+        IRsensor();
         IRsensor(int, int);
         int sample_size;
         int power;
@@ -20,4 +21,4 @@ class IRsensor{
         // collect the sample of size sample_size into array
         void sample(int);
         void corr();
-}
+};
