@@ -32,8 +32,8 @@ float rightSpeed = targetSpeed;
 
 float leftValue = 0.0;
 float rightValue = 0.0;
-float farLeft = 0.0;
-float farRight = 0.0;
+float farLeftValue = 0.0;
+float farRightValue = 0.0;
 
 float error = 0.0;
 
@@ -42,10 +42,9 @@ float rightBuffer[BUFFER_SIZE];
 
 pid p_i_d;
 
-enum state { onTrack, leftOff, rightOff, turnLeft, turnRight, white, malfunc } currentState, previousState;
+enum state { onTrack, leftOff, rightOff, turnLeft, turnRight, white, malfunc} currentState, previousState;
 
 float speedVerification(float speed); //add for all functions
-
 
 void setup() {
     Serial.begin(115200);
@@ -68,8 +67,13 @@ void setup() {
     p_i_d = pid();
 }
 
-state getState(float left, float right){
+state getState(float left, float right, float farLeft, float farRight){
   //if, turn logic right here, separate if statement
+  // if (farLeft == ON) //first check the branch cases to not miss any of the turns
+  //   return turnLeft; //if we don't see a possible turn, then keep following the "obvious" tape path
+  if ( farLeft == ON ) 
+    return turnLeft;
+
 
   if ( (left == ON) && (right == ON) )
     return onTrack;
@@ -77,8 +81,9 @@ state getState(float left, float right){
     return leftOff;
   else if ( (right == OFF) && (left == ON) )
     return rightOff;
-  else 
+  else{
     return white;
+  }    
 }
 
 void drive(float bwLeft, float fwLeft, float bwRight, float fwRight) {
@@ -105,8 +110,10 @@ float speedVerification(float speed) {
 void loop() {
   leftValue = digitalRead(LEFT_SENSOR);
   rightValue = digitalRead(RIGHT_SENSOR);
+  farLeftValue = digitalRead(FAR_LEFT);
+  farRightValue = digitalRead(FAR_RIGHT);
 
-  currentState = getState(leftValue, rightValue);
+  currentState = getState(leftValue, rightValue, farLeftValue, farRightValue);
   
   //Serial.println(currentState);
 
@@ -146,7 +153,7 @@ void loop() {
       break;
 
     case white : //both sensors off tape
-      error = 5;
+      error = 3;
       if(previousState == leftOff) {  // continue to turn right
         leftSpeed = targetSpeed + p_i_d.output_pid(error);
         rightSpeed = targetSpeed + p_i_d.output_pid(-error);
@@ -155,6 +162,14 @@ void loop() {
         leftSpeed = targetSpeed + p_i_d.output_pid(-error);
         rightSpeed = targetSpeed + p_i_d.output_pid(error);
         drive(0, leftSpeed, 0, rightSpeed); //left weaker, right needs to catch up
+      } else if(previousState == turnLeft){ //continue to turn left
+        leftSpeed = targetSpeed + p_i_d.output_pid(-error);
+        rightSpeed = targetSpeed + p_i_d.output_pid(error);
+        drive(0, leftSpeed, 0, rightSpeed);  
+      } else if (previousState == turnRight){ //continue to turn right
+        leftSpeed = targetSpeed + p_i_d.output_pid(error);
+        rightSpeed = targetSpeed + p_i_d.output_pid(-error);
+        drive(0, leftSpeed, 0, rightSpeed);  
       } else {
         drive(0, 0, 0, 0); // do nothing
         delay(2000); //if it stops this means it went from both on, to both off....
@@ -164,6 +179,31 @@ void loop() {
       Serial.println(rightSpeed);
       Serial.println();
       break;
+    
+    case turnLeft :
+      error = 5;
+      leftSpeed = targetSpeed + p_i_d.output_pid(-error);
+      rightSpeed = targetSpeed + p_i_d.output_pid(error);
+      Serial.println(error);
+      Serial.println(leftSpeed);
+      Serial.println(rightSpeed);
+      Serial.println();
+      drive(0, leftSpeed, 0, rightSpeed); //left weaker, right needs to catch up 
+      delay(500); 
+      break;
+
+    case turnRight :
+      error = 5;
+      leftSpeed = targetSpeed + p_i_d.output_pid(error);
+      rightSpeed = targetSpeed + p_i_d.output_pid(-error);
+      Serial.println(error);
+      Serial.println(leftSpeed);
+      Serial.println(rightSpeed);
+      Serial.println();
+      drive(0, leftSpeed, 0, rightSpeed); //left needs to catch up, right side weaker
+      
+      //as long as it is still in turnRight, ignore any left
+      break;
 
     default:
       drive(0, period/3, period/3, 0); //spin for 5 seconds
@@ -172,8 +212,7 @@ void loop() {
       break;  
 
   }
-
-  if (currentState != white) //if currentState is white, then don't update previousState so that we will keep on turning left or right to correct moving off the tape
+  if (currentState != onTrack && currentState != white){
     previousState = currentState;
-
+  }
 }
