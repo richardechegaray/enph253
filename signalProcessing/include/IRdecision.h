@@ -7,7 +7,7 @@ class IRdecision{
         int mode;
     public:
         IRdecision(int, int, int, int);
-        
+
         float corrleft, corrcenter, corrright;
         int max_pin;
     

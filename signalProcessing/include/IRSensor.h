@@ -20,4 +20,4 @@ class IRsensor{
         // collect the sample of size sample_size into array
         void sample(int);
         void corr();
-};
+}
