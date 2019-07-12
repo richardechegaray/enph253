@@ -6,7 +6,6 @@
 // #define PIN0 PA0
 // #define PIN1 PA1
 
-// *
 #define PIN_LEFT PA0
 #define PIN_CENTER PA1
 #define PIN_RIGHT PA2
