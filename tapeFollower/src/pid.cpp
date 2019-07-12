@@ -2,9 +2,9 @@
 #include "pid.h"
 
 pid::pid(){
-    kp = 60;
+    kp = 200;
     ki = 0; 
-    kd = 90; 
+    kd = 400; 
     p = 0; 
     i = 0; 
     d = 0; 
