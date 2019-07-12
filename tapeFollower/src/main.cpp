@@ -1,6 +1,5 @@
 //right wheel tends to be faster when speeds are set to be equal
 
-#include <Wire.h>
 #include <Arduino.h>
 #include <pid.h>
 
@@ -19,10 +18,13 @@
 #define ON 1
 #define OFF 0
 
+
 float clockFreq = 100000;
 float period = 1000;
 
-float targetSpeed = period/4;
+
+float targetSpeed = 50*period/100;
+
 float leftSpeed = targetSpeed;
 float rightSpeed = targetSpeed;
 
@@ -46,7 +48,7 @@ pid p_i_d;
 
 enum state { onTrack, leftOff, rightOff, turnLeft, turnRight, white, malfunc} currentState, previousState;
 
-float speedVerification(float speed); //add for all functions
+float capSpeed(float speed); //add for all functions
 
 void setup() {
     Serial.begin(115200);
@@ -71,12 +73,10 @@ void setup() {
 
 state getState(float left, float right, float farLeft, float farRight){
   //if, turn logic right here, separate if statement
-  // if (farLeft == ON) //first check the branch cases to not miss any of the turns
-  //   return turnLeft; //if we don't see a possible turn, then keep following the "obvious" tape path
-
-  if ( farLeft == ON ) 
-    return turnLeft;
-
+  // if (farRight == ON) //first check the branch cases to not miss any of the turns
+  //   return turnRight; //if we don't see a possible turn, then keep following the "obvious" tape path
+  // if ( farLeft == ON ) 
+  //   return turnLeft;
   if ( (left == ON) && (right == ON) )
     return onTrack;
   else if ( (right == ON) && (left == OFF) )
@@ -89,23 +89,34 @@ state getState(float left, float right, float farLeft, float farRight){
 }
 
 void drive(float bwLeft, float fwLeft, float bwRight, float fwRight) {
-  bwLeft = speedVerification(bwLeft);
-  fwLeft = speedVerification(fwLeft);
-  bwRight = speedVerification(bwRight);
-  fwRight = speedVerification(fwRight);
-    
+  
+  fwLeft = capSpeed(fwLeft);
+  fwRight = capSpeed(fwRight);
+
+  // if ( fwRight < 0 ) {
+  //   bwRight = -fwRight;
+  //   fwRight = 0;
+  // }
+  // if ( fwLeft < 0 ) {
+  //   bwLeft = -fwLeft;
+  //   fwLeft = 0;
+  // } 
+
+  bwLeft = capSpeed(bwLeft);
+  bwRight = capSpeed(bwRight);
+
   pwm_start(LEFT_MOTOR_BW, clockFreq, period, bwLeft, 0); 
   pwm_start(LEFT_MOTOR_FW, clockFreq, period, fwLeft, 0); 
   pwm_start(RIGHT_MOTOR_BW, clockFreq, period, bwRight, 0); 
   pwm_start(RIGHT_MOTOR_FW, clockFreq, period, fwRight, 0); 
 }
 
-float speedVerification(float speed) {
-  if (speed<0)
-    return period/12;
-  else if (speed>period)
+float capSpeed(float speed) {
+  if (speed>period)
     return period;
-  else 
+  else if (speed<0)
+  return period/10;
+  else
     return speed;
 }
 
@@ -155,7 +166,7 @@ void loop() {
       break;
 
     case white : //both sensors off tape
-      error = 3;
+      error = 4;
       if(previousState == leftOff) {  // continue to turn right
         leftSpeed = targetSpeed + p_i_d.output_pid(error);
         rightSpeed = targetSpeed + p_i_d.output_pid(-error);
@@ -183,7 +194,7 @@ void loop() {
       break;
     
     case turnLeft :
-      error = 7;
+      error = 9;
       turnCounter++;
       leftSpeed = targetSpeed + p_i_d.output_pid(-error);
       rightSpeed = targetSpeed + p_i_d.output_pid(error);
@@ -192,11 +203,11 @@ void loop() {
       Serial.println(rightSpeed);
       Serial.println();
       drive(0, leftSpeed, 0, rightSpeed); //left weaker, right needs to catch up 
-      delay(200); 
+      delay(250); 
       break;
 
     case turnRight : //not doing yet
-      error = 7;
+      error = 9;
       leftSpeed = targetSpeed + p_i_d.output_pid(error);
       rightSpeed = targetSpeed + p_i_d.output_pid(-error);
       Serial.println(error);
@@ -204,8 +215,7 @@ void loop() {
       Serial.println(rightSpeed);
       Serial.println();
       drive(0, leftSpeed, 0, rightSpeed); //left needs to catch up, right side weaker
-      
-      //as long as it is still in turnRight, ignore any left
+      delay(250); 
       break;
 
     default:
