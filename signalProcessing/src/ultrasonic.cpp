@@ -30,3 +30,13 @@ int get_distance(){
     return distance;
 }
 
+bool is_there_obj(int range){
+    int distance_to_obs = get_distance();
+    if (distance_to_obs < range){
+        return true;
+    }
+    else {
+        return false;
+    }
+}
+

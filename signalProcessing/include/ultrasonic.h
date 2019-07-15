@@ -10,8 +10,10 @@ class ultrasonic{
         unsigned long duration;
         int distance;
 
+        // returns distance in cm to obstacle
         int get_distance();
-
+        // returns bool if there is obstacle within provided range
+        bool is_there_obj(int);
 };
 
 // vcc pin requires 5V
