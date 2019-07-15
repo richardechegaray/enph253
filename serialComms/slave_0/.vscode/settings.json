@@ -1,6 +1,0 @@
-{
-    "terminal.integrated.env.osx": {
-        "PATH": "/Users/richardechegaray/.platformio/penv/bin:/Users/richardechegaray/.platformio/penv:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Library/TeX/texbin:/Library/Frameworks/Mono.framework/Versions/Current/Commands",
-        "PLATFORMIO_CALLER": "vscode"
-    }
-}
