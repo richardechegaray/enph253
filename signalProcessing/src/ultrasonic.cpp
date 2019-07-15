@@ -11,7 +11,7 @@ echo(pin_echo)
     pinMode(echo, INPUT);
 }
 
-int get_distance(){
+int ultrasonic::get_distance(){
     // set trig pin to low to clear it
     digitalWrite(trig, LOW);
     delayMicroseconds(2);
@@ -30,7 +30,7 @@ int get_distance(){
     return distance;
 }
 
-bool is_there_obj(int range){
+bool ultrasonic::is_there_obj(int range){
     int distance_to_obs = get_distance();
     if (distance_to_obs < range){
         return true;
