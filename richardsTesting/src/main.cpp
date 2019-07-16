@@ -22,25 +22,24 @@
 float clockFreq = 100000;
 float period = 1000;
 
-float spinSpeed = 8*period/100; //make sure this isnt too fast
+float spinSpeed = 18*period/100; //make sure this isnt too fast
 float targetSpeed = 20*period/100;
-float targetSpeedPlus = 23*period/100;
-float targetSpeedMinus = 17*period/100;
+float targetSpeedPlus = 25*period/100;
+float targetSpeedMinus = 15*period/100;
 
 int leftValue, rightValue, farLeftValue, farRightValue;
 
-float midThreshold = 0;
-float closeThreshold = 0;
+float midThreshold = 2000;
+float closeThreshold = 1100;
 
 enum state { initialSpin, /*orient,*/ driving} currentState;
 enum range { far, mid, close } currentDistance;
 
 
-float leftIntensity, midIntensity, rightIntensity = -100; //initilialize to lowest possible value
-float maxIntensity = 0; //set to reasonable 'max value'
-//
-float threshold = 0; //TBD !!!
-//
+float leftIntensity, midIntensity, rightIntensity = -1; //initilialize to lowest possible value
+int highestPin = -1;
+float maxIntensity = 2000; //set to reasonable 'max value', at tape range
+
 /** GLOBAL VARIABLES - END **/
 
 
@@ -73,83 +72,38 @@ void setup(){
   currentDistance = far;
 
 }
-/*** TEST 2b ***/
+
 void loop() { 
- 
-}
 
-/*** TEST 0 ***/  /*
-void loop() { 
-  // write down the values ! ! ! 
-  delay(1000);
-
-  int max_pin;
-  max_pin = decision.strongest_signal();
-
-  leftIntensity = decision.corrleft;
-  midIntensity = decision.corrcenter;
-  rightIntensity = decision.corrright;
-
-  Serial.print("Left: ");
-  Serial.println(leftIntensity);
-
-  Serial.print("Middle: ");
-  Serial.println(midIntensity);
-
-  Serial.print("Right: ");
-  Serial.println(rightIntensity);
-
-  Serial.print("Max correlation pin: ");
-  Serial.println(max_pin);
-    
-  Serial.println("-");
-
-}  */
-
-/*** TEST 1a ***/   /*
-void loop() { 
  switch ( currentState ) { //state machine
 
     case initialSpin : //drive straight
-      midIntensity = decision.corrcenter;
-      drive(0, spinSpeed, spinSpeed, 0); // spin CW
-      if (midIntensity > maxIntensity) 
-        maxIntensity = midIntensity;
+      highestPin = decision.strongest_signal();
+      drive(spinSpeed, 0, 0, spinSpeed); // spin CCW
       
-      if ((midIntensity < maxIntensity+threshold) && (midIntensity > maxIntensity-threshold))
+      if (highestPin == MID_IR)
         currentState = driving;
+
       break;
 
     case driving :
-      drive(0, targetSpeed, 0, targetSpeed);
-      break;
+      leftValue = digitalRead(LEFT_SENSOR);
+      rightValue = digitalRead(RIGHT_SENSOR);
+      farLeftValue = digitalRead(FAR_LEFT);
+      farRightValue = digitalRead(FAR_RIGHT);
 
- }
-}   */
+      if (leftValue || rightValue || farLeftValue || farRightValue == ON)
+        drive(0,0,0,0);
 
-/*** TEST 1b ***/   /*
-void loop() { 
-  switch ( currentState ) { //state machine
-    case initialSpin : //drive straight
-      midIntensity = decision.corrcenter;
-      drive(0, spinSpeed, spinSpeed, 0); // spin CW
-      if (midIntensity > maxIntensity) 
-        maxIntensity = midIntensity;
-      
-      if ((midIntensity < maxIntensity+threshold) && (midIntensity > maxIntensity-threshold))
-        currentState = driving;
-      break;
-
-    case driving :
       if (decision.strongest_signal() == LEFT_IR) 
-        drive(0, targetSpeedPlus, 0, targetSpeedMinus);
-      else if (decision.strongest_signal() == RIGHT_IR) 
         drive(0, targetSpeedMinus, 0, targetSpeedPlus);
+      else if (decision.strongest_signal() == RIGHT_IR) 
+        drive(0, targetSpeedPlus, 0, targetSpeedMinus);
       else
         drive(0, targetSpeed, 0, targetSpeed);
       break;
-  }
-}   */
+ }
+}
 
 /*** TEST 2b ***/    /*
 void loop() { 
