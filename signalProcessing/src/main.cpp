@@ -6,9 +6,30 @@
 // #define PIN0 PA0
 // #define PIN1 PA1
 
-#define PIN_LEFT PA0
-#define PIN_CENTER PA1
-#define PIN_RIGHT PA2
+// #define PIN_LEFT PA0
+// #define PIN_CENTER PA1
+// #define PIN_RIGHT PA2
+WheelRotaries wr = WheelRotaries();
+
+void setup(){
+    Serial.begin(9600);
+}
+void loop(){
+    Serial.print("Rot 1: ");
+    Serial.println(wr.rotaryRotation(wid_1));
+    Serial.println();
+    Serial.print("Rot 2: ");
+    Serial.println(wr.rotaryRotation(wid_2));
+    Serial.println();
+    delay(1000);
+}
+
+
+
+
+
+
+
 
 //note: every .h file in include/ can make use of https://github.com/danieleff/STM32GENERIC/tree/master/STM32/libraries
 //Robot sample_robot = Robot();
