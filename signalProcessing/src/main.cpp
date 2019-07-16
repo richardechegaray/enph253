@@ -1,36 +1,94 @@
 #include <Arduino.h>
-//#include <robot.cpp>
-#include "WheelRotaries.h"
-//#include "IRdecision.h"
-// #include "IRsensor.h"
+
+// ******************** ROTARY ENCODER ******************************************************************************************************
+// #include <robot.cpp>
+// #include "WheelRotaries.h"
 // #define PIN0 PA0
 // #define PIN1 PA1
+// ******************************************************************************************************************************************
 
-// #define PIN_LEFT PA0
-// #define PIN_CENTER PA1
-// #define PIN_RIGHT PA2
-WheelRotaries wr = WheelRotaries();
+// ******************* INFRARED SENSOR ******************************************************************************************************
+#include "IRdecision.h"
+#include "IRsensor.h"
+#define PIN_LEFT PA0
+#define PIN_CENTER PA1
+#define PIN_RIGHT PA2
+#define PIN PA0
+// ******************************************************************************************************************************************
+
+
+// ******************* INFRARED SENSOR ******************************************************************************************************
+IRdecision decision = IRdecision(PIN_LEFT, PIN_CENTER, PIN_RIGHT, 10);
+IRsensor sensor = IRsensor(PIN, 1);
 
 void setup(){
-    Serial.begin(9600);
-}
-void loop(){
-    Serial.print("Rot 1: ");
-    Serial.println(wr.rotaryRotation(wid_1));
-    Serial.println();
-    Serial.print("Rot 2: ");
-    Serial.println(wr.rotaryRotation(wid_2));
-    Serial.println();
-    delay(1000);
+  Serial.begin(115200); 
+  delay(2000);
+  Serial.println("Setup done");
 }
 
+void loop() { 
+  sensor.corr();
+  float duration = sensor.duration;
+  float average = sensor.average;
+  float correlation = sensor.correlation;
 
+  Serial.print("duration: ");
+  Serial.println(duration*1000000);
 
+  Serial.print("average: ");
+  Serial.println(average);
 
+  Serial.print("correlation: ");
+  Serial.println(correlation);
 
+  delay(1000);
 
+  int max_pin;
+  max_pin = decision.strongest_signal();
 
+  float left_correlation, center_correlation, right_correlation;
+  left_correlation = decision.corrleft;
+  center_correlation = decision.corrcenter;
+  right_correlation = decision.corrright;
 
+  Serial.print("left: ");
+  Serial.println(left_correlation);
+
+  Serial.print("center: ");
+  Serial.println(center_correlation);
+
+  Serial.print("right: ");
+  Serial.println(right_correlation);
+
+  Serial.print("max correlating pin: ");
+  Serial.println(max_pin);
+}
+// ******************************************************************************************************************************************
+
+// ******************** ROTARY ENCODER ******************************************************************************************************
+// WheelRotary wheelRotary = WheelRotary(PIN0, PIN1);
+// unsigned rot = 0;
+
+// void setup() {
+//     Serial.begin(115200); 
+//     delay(2000);
+//     Serial.println("Setup done");
+// }
+
+// void loop() {
+//   rot = wheelRotary.countA(PIN0, PIN1);
+//   Serial.print("rotation:");
+//   Serial.println(rot); 
+
+//   Serial.println();
+//   wheelRotary.countA(PIN0, PIN1);
+//   wheelRotary.countB(PIN0, PIN1);
+//   Serial.println(wheelRotary.counter/96);
+// }
+// ******************************************************************************************************************************************
+
+// ************************* ROBOT **********************************************************************************************************
 //note: every .h file in include/ can make use of https://github.com/danieleff/STM32GENERIC/tree/master/STM32/libraries
 //Robot sample_robot = Robot();
 
@@ -62,74 +120,6 @@ void loop(){
 //       break;  
 //   }
 // }
-// WheelRotary wheelRotary = WheelRotary(PIN0, PIN1);
-// unsigned rot = 0;
-
-// IRdecision decision = IRdecision(PIN_LEFT, PIN_CENTER, PIN_RIGHT, 10);
-
-// // IRsensor sensor = IRsensor(PIN, 1);
-
-// void setup(){
-//   Serial.begin(115200); 
-//   delay(2000);
-//   Serial.println("Setup done");
-// }
-// // void loop() {
-// //   Serial.println("test");
-// //   delay(500);
-// // }
-
-// void loop() { 
-//   // sensor.corr();
-//   // float duration = sensor.duration;
-//   // float average = sensor.average;
-//   // float correlation = sensor.correlation;
-
-
-//   // Serial.print("duration: ");
-//   // Serial.println(duration*1000000);
-
-//   // Serial.print("average: ");
-//   // Serial.println(average);
-
-//   // Serial.print("correlation: ");
-//   // Serial.println(correlation);
-
-//   delay(1000);
-
-//   int max_pin;
-//   max_pin = decision.strongest_signal();
-
-//   float left_correlation, center_correlation, right_correlation;
-//   left_correlation = decision.corrleft;
-//   center_correlation = decision.corrcenter;
-//   right_correlation = decision.corrright;
-
-//   Serial.print("left: ");
-//   Serial.println(left_correlation);
-
-//   Serial.print("center: ");
-//   Serial.println(center_correlation);
-
-//   Serial.print("right: ");
-//   Serial.println(right_correlation);
-
-  
-
-//   Serial.print("max correlating pin: ");
-//   Serial.println(max_pin);
-
-  
-  
-//   // rot = wheelRotary.countA(PIN0, PIN1);
-//   // Serial.print("rotation:");
-//   // Serial.println(rot); 
-
-//   // Serial.println();
-//   // wheelRotary.countA(PIN0, PIN1);
-//   // wheelRotary.countB(PIN0, PIN1);
-//   // Serial.println(wheelRotary.counter/96);
-// }
-
+// ******************************************************************************************************************************************
 
 
