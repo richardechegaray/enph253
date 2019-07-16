@@ -22,15 +22,12 @@
 float clockFreq = 100000;
 float period = 1000;
 
+float initialTime;
+float timeElapsed;
 
 float targetSpeed = 50*period/100;
-
 float leftSpeed = targetSpeed;
 float rightSpeed = targetSpeed;
-
-// float forwardSpeed = period/6;
-// float turnSpeedWeakSide = period/7;
-// float turnSpeedStrongSide = period/4;
 
 float leftValue = 0.0;
 float rightValue = 0.0;
@@ -49,6 +46,8 @@ pid p_i_d;
 enum state { onTrack, leftOff, rightOff, turnLeft, turnRight, white, malfunc} currentState, previousState;
 
 float capSpeed(float speed); //add for all functions
+state getState(float left, float right, float farLeft, float farRight);
+void drive(float bwLeft, float fwLeft, float bwRight, float fwRight);
 
 void setup() {
     Serial.begin(115200);
@@ -67,60 +66,15 @@ void setup() {
     pwm_start(LEFT_MOTOR_BW, clockFreq, period, 0, 1); 
     pwm_start(RIGHT_MOTOR_FW, clockFreq, period, 0, 1); 
     pwm_start(RIGHT_MOTOR_BW, clockFreq, period, 0, 1); 
+    initialTime = millis();
     previousState = onTrack;
     p_i_d = pid();
 }
 
-state getState(float left, float right, float farLeft, float farRight){
-  //if, turn logic right here, separate if statement
-  // if (farRight == ON) //first check the branch cases to not miss any of the turns
-  //   return turnRight; //if we don't see a possible turn, then keep following the "obvious" tape path
-  // if ( farLeft == ON ) 
-  //   return turnLeft;
-  if ( (left == ON) && (right == ON) )
-    return onTrack;
-  else if ( (right == ON) && (left == OFF) )
-    return leftOff;
-  else if ( (right == OFF) && (left == ON) )
-    return rightOff;
-  else{
-    return white;
-  }    
-}
-
-void drive(float bwLeft, float fwLeft, float bwRight, float fwRight) {
-  
-  fwLeft = capSpeed(fwLeft);
-  fwRight = capSpeed(fwRight);
-
-  // if ( fwRight < 0 ) {
-  //   bwRight = -fwRight;
-  //   fwRight = 0;
-  // }
-  // if ( fwLeft < 0 ) {
-  //   bwLeft = -fwLeft;
-  //   fwLeft = 0;
-  // } 
-
-  bwLeft = capSpeed(bwLeft);
-  bwRight = capSpeed(bwRight);
-
-  pwm_start(LEFT_MOTOR_BW, clockFreq, period, bwLeft, 0); 
-  pwm_start(LEFT_MOTOR_FW, clockFreq, period, fwLeft, 0); 
-  pwm_start(RIGHT_MOTOR_BW, clockFreq, period, bwRight, 0); 
-  pwm_start(RIGHT_MOTOR_FW, clockFreq, period, fwRight, 0); 
-}
-
-float capSpeed(float speed) {
-  if (speed>period)
-    return period;
-  else if (speed<0)
-  return period/10;
-  else
-    return speed;
-}
-
 void loop() {
+  timeElapsed = (millis() - initialTime)/1000;
+  Serial.println(timeElapsed);
+
   leftValue = digitalRead(LEFT_SENSOR);
   rightValue = digitalRead(RIGHT_SENSOR);
   farLeftValue = digitalRead(FAR_LEFT);
@@ -128,8 +82,6 @@ void loop() {
 
   currentState = getState(leftValue, rightValue, farLeftValue, farRightValue);
   
-  //Serial.println(currentState);
-
   switch ( currentState ) { //state machine
 
     case onTrack : //drive straight
@@ -230,4 +182,53 @@ void loop() {
     
     previousState = currentState;
   }
+}
+
+state getState(float left, float right, float farLeft, float farRight){
+  //if, turn logic right here, separate if statement
+  // if (farRight == ON) //first check the branch cases to not miss any of the turns
+  //   return turnRight; //if we don't see a possible turn, then keep following the "obvious" tape path
+  // if ( farLeft == ON ) 
+  //   return turnLeft;
+  if ( (left == ON) && (right == ON) )
+    return onTrack;
+  else if ( (right == ON) && (left == OFF) )
+    return leftOff;
+  else if ( (right == OFF) && (left == ON) )
+    return rightOff;
+  else{
+    return white;
+  }    
+}
+
+void drive(float bwLeft, float fwLeft, float bwRight, float fwRight) {
+  
+  fwLeft = capSpeed(fwLeft);
+  fwRight = capSpeed(fwRight);
+
+  // if ( fwRight < 0 ) {
+  //   bwRight = -fwRight;
+  //   fwRight = 0;
+  // }
+  // if ( fwLeft < 0 ) {
+  //   bwLeft = -fwLeft;
+  //   fwLeft = 0;
+  // } 
+
+  bwLeft = capSpeed(bwLeft);
+  bwRight = capSpeed(bwRight);
+
+  pwm_start(LEFT_MOTOR_BW, clockFreq, period, bwLeft, 0); 
+  pwm_start(LEFT_MOTOR_FW, clockFreq, period, fwLeft, 0); 
+  pwm_start(RIGHT_MOTOR_BW, clockFreq, period, bwRight, 0); 
+  pwm_start(RIGHT_MOTOR_FW, clockFreq, period, fwRight, 0); 
+}
+
+float capSpeed(float speed) {
+  if (speed>period)
+    return period;
+  else if (speed<0)
+  return period/10;
+  else
+    return speed;
 }

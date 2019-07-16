@@ -1,5 +1,7 @@
 #include <Arduino.h>
 #include "IRdecision.h" 
+#include "ultrasonic.h"
+
 /** PIN INITIALIZATIONS - START **/
 #define FAR_LEFT PB12
 #define LEFT_SENSOR PB13  
@@ -14,6 +16,10 @@
 #define LEFT_IR PA0
 #define MID_IR PA1
 #define RIGHT_IR PA2
+
+#define TRIG PB10
+#define ECHO PB11
+
 /** PIN INITIALIZATIONS - END **/
 
 /** GLOBAL VARIABLES - START **/
@@ -23,16 +29,18 @@ float clockFreq = 100000;
 float period = 1000;
 
 float spinSpeed = 18*period/100; //make sure this isnt too fast
-float targetSpeed = 20*period/100;
-float targetSpeedPlus = 25*period/100;
-float targetSpeedMinus = 15*period/100;
+float targetSpeed = 25*period/100;
+float targetSpeedPlus = 30*period/100;
+float targetSpeedMinus = 20*period/100;
 
 int leftValue, rightValue, farLeftValue, farRightValue;
 
 float midThreshold = 2000;
 float closeThreshold = 1100;
 
-enum state { initialSpin, /*orient,*/ driving} currentState;
+int detectionRange;
+
+enum state { initialSpin, driving, avoid} currentState;
 enum range { far, mid, close } currentDistance;
 
 
@@ -49,12 +57,11 @@ void drive(float bwLeft, float fwLeft, float bwRight, float fwRight);
 void irDrive(range distance);
 /** FUNCTION DEFINITIONS - END **/
 
-
+ultrasonic ultra = ultrasonic(TRIG, ECHO);
 IRdecision decision = IRdecision(LEFT_IR, MID_IR, RIGHT_IR, 1);
 
 void setup(){
   Serial.begin(115200); 
-  Serial.println("Setup done");
   pinMode(LEFT_SENSOR, INPUT_PULLUP); 
   pinMode(RIGHT_SENSOR, INPUT_PULLUP); 
   pinMode(FAR_LEFT, INPUT_PULLUP);
@@ -70,10 +77,12 @@ void setup(){
   pwm_start(RIGHT_MOTOR_FW, clockFreq, period, 0, 1); 
   pwm_start(RIGHT_MOTOR_BW, clockFreq, period, 0, 1);   
   currentDistance = far;
-
 }
 
 void loop() { 
+  detectionRange = 25;
+  if (ultra.is_there_obj(detectionRange))
+    currentState = avoid;
 
  switch ( currentState ) { //state machine
 
@@ -87,13 +96,13 @@ void loop() {
       break;
 
     case driving :
-      leftValue = digitalRead(LEFT_SENSOR);
-      rightValue = digitalRead(RIGHT_SENSOR);
-      farLeftValue = digitalRead(FAR_LEFT);
-      farRightValue = digitalRead(FAR_RIGHT);
+      // leftValue = digitalRead(LEFT_SENSOR);
+      // rightValue = digitalRead(RIGHT_SENSOR);
+      // farLeftValue = digitalRead(FAR_LEFT);
+      // farRightValue = digitalRead(FAR_RIGHT);
 
-      if (leftValue || rightValue || farLeftValue || farRightValue == ON)
-        drive(0,0,0,0);
+      // if (leftValue || rightValue || farLeftValue || farRightValue == ON)
+      //   drive(0,0,0,0);
 
       if (decision.strongest_signal() == LEFT_IR) 
         drive(0, targetSpeedMinus, 0, targetSpeedPlus);
@@ -101,6 +110,14 @@ void loop() {
         drive(0, targetSpeedPlus, 0, targetSpeedMinus);
       else
         drive(0, targetSpeed, 0, targetSpeed);
+      break;
+
+    case avoid:
+      drive(targetSpeed*2, 0, 0, targetSpeed*2);
+      delay(300);
+      drive(0, targetSpeed*2, 0, targetSpeed*2);
+      delay(600);
+      currentState = initialSpin;
       break;
  }
 }
@@ -141,17 +158,17 @@ void irDrive(range distance) {
   float speed, speedPlus, speedMinus;
 
   if (distance == far) {
+    speed = 4*targetSpeed/3;
+    speedPlus = 4*targetSpeedPlus/3;
+    speedMinus = 4*targetSpeedMinus/3;
+  } else if (distance == mid) {
     speed = targetSpeed;
     speedPlus = targetSpeedPlus;
     speedMinus = targetSpeedMinus;
-  } else if (distance == mid) {
-    speed = targetSpeed/2;
-    speedPlus = targetSpeedPlus/2;
-    speedMinus = targetSpeedMinus/2;
   } else if (distance == close) {
-    speed = targetSpeed/4;
-    speedPlus = targetSpeedPlus/4;
-    speedMinus = targetSpeedMinus/4;
+    speed = targetSpeed/3;
+    speedPlus = targetSpeedPlus/3;
+    speedMinus = targetSpeedMinus/3;
   } else {
     speed = speedPlus = speedMinus = 0;
   }
