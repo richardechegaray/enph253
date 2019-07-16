@@ -24,7 +24,7 @@
 ultrasonic ultra = ultrasonic(TRIG, ECHO);
 int distance;
 int range;
-bool boolean;
+bool yesorno;
 
 void setup() {
     Serial.begin(115200);
@@ -34,26 +34,26 @@ void setup() {
 
 void loop() {
     // test 1: observe range that it can reliably detect
-    // closest:
-    // farthest:
+    // closest: it reads reliably from 11+ cm, can still handle up to 7 before it gets whack, but it'll give values off by a couple cm
+    // farthest: over a metre!!! we gucci boys
     // put circuit on a ruler and pull back from object (robot, then pillar) until it's not working as expected
 
-    distance = ultra.get_distance();
-    Serial.print("Distance: ");
-    Serial.println(distance);
-    delay(1000);
+    // distance = ultra.get_distance();
+    // Serial.print("Distance: ");
+    // Serial.println(distance);
+    // delay(1000);
 
     // test 2: see if it triggers when objects enter range
-    // range = 10;
-    // boolean = ultra.is_there_obj(range);
-    // Serial.print("Object within range: ");
-    // Serial.println(boolean);
-    // delay(1000);
+    range = 25;
+    yesorno = ultra.is_there_obj(range);
+    Serial.print("Object within range: ");
+    Serial.println(yesorno);
+    delay(1000);
 
     // test 3: put ultrasonic on robot to see if we can detect pillars in front range without servo
     // range =  25;
-    // boolean = ultra.is_there_obj(range);
-    // if (boolean)
+    // yesorno = ultra.is_there_obj(range);
+    // if (yesorno)
     //     // light an LED?
     // delay(1000)
 
