@@ -47,7 +47,7 @@ void loop() {
     // looked at range side to side: at 20cm distance, range right to left is only about 20cm
     range = 25;
     yesorno = ultra.is_there_obj(range);
-    Serial.print("Object within range: ");
+    Serial.print("Object within range: "); 
     Serial.println(yesorno); 
     delay(1000);
 
