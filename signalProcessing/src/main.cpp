@@ -44,10 +44,11 @@ void loop() {
     // delay(1000);
 
     // test 2: see if it triggers when objects enter range
+    // looked at range side to side: at 20cm distance, range right to left is only about 20cm
     range = 25;
     yesorno = ultra.is_there_obj(range);
     Serial.print("Object within range: ");
-    Serial.println(yesorno);
+    Serial.println(yesorno); 
     delay(1000);
 
     // test 3: put ultrasonic on robot to see if we can detect pillars in front range without servo
