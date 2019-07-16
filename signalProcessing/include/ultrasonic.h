@@ -1,19 +1,27 @@
 #include <Arduino.h>
+#include <Servo.h>
 
 class ultrasonic{
     private:
         int trig;
         int echo;
+        Servo myservo;
+        int angle;
     public:
         ultrasonic(int, int);
 
         unsigned long duration;
         int distance;
 
+        enum location {left, left_center, center, center_right, right, left_right, all, none} loc;
+
         // returns distance in cm to obstacle
         int get_distance();
         // returns bool if there is obstacle within provided range
         bool is_there_obj(int);
+        // returns location of object within provided range
+        // sweep -30 to 30 degrees
+        enum location loc_of_obj(int);
 };
 
 // vcc pin requires 5V

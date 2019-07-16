@@ -1,7 +1,9 @@
 #include <Arduino.h>
+#include <Servo.h>
 #include "ultrasonic.h"
 
 #define CM 0.034 // this is 0.034 cm/microsecond speed of sound
+#define SERVO_PIN PB10 // needs to be a digital pin
 
 ultrasonic::ultrasonic(int pin_trig, int pin_echo):
 trig(pin_trig),
@@ -9,6 +11,9 @@ echo(pin_echo)
 {
     pinMode(trig, OUTPUT); 
     pinMode(echo, INPUT);
+    myservo.attach(SERVO_PIN);
+    angle = 0;
+    myservo.write(angle);
 }
 
 int ultrasonic::get_distance(){
@@ -38,5 +43,45 @@ bool ultrasonic::is_there_obj(int range){
     else {
         return false;
     }
+}
+
+enum ultrasonic::location ultrasonic::loc_of_obj(int range){
+
+    int angle_range [] = {-30, -20, -10, 0, 10, 20, 30};
+    int obj_detected [] = {0, 0, 0, 0, 0, 0, 0};
+
+    for (int i = 0; i < 7; i++){
+        myservo.write(angle_range[i]);
+        if (is_there_obj(range)){
+            obj_detected[i] = 1;
+        }
+    }
+
+    if (obj_detected[0] || obj_detected[1]){
+        loc = left;
+        if ((obj_detected[2]) || (obj_detected[3]) || (obj_detected[4])){
+            loc = left_center;
+            if ((obj_detected[5] || obj_detected[6])){
+                loc = all;
+            }
+        }
+        else if ((obj_detected[5] || obj_detected[6])){
+            loc = left_right;
+        }
+    }
+    else if ((obj_detected[2]) || (obj_detected[3]) || (obj_detected[4])){
+        loc = center;
+        if ((obj_detected[5] || obj_detected[6])){
+            loc = center_right;
+        }
+    }
+    else if ((obj_detected[5] || obj_detected[6])){
+        loc = right;
+    }
+    else {
+        loc = none;
+    }
+
+    return loc;
 }
 
