@@ -8,62 +8,104 @@
 // ******************************************************************************************************************************************
 
 // ******************* INFRARED SENSOR ******************************************************************************************************
-#include "IRdecision.h"
-#include "IRsensor.h"
-#define PIN_LEFT PA0
-#define PIN_CENTER PA1
-#define PIN_RIGHT PA2
-#define PIN PA0
+// #include "IRdecision.h"
+// #include "IRsensor.h"
+// #define PIN_LEFT PA0
+// #define PIN_CENTER PA1
+// #define PIN_RIGHT PA2
+// #define PIN PA0
 // ******************************************************************************************************************************************
 
+// ****************** ULTRASONIC SENSOR *****************************************************************************************************
+#include "ultrasonic.h"
+#define TRIG PB10
+#define ECHO PB11
+
+ultrasonic ultra = ultrasonic(TRIG, ECHO);
+int distance;
+int range;
+bool boolean;
+
+void setup() {
+    Serial.begin(115200);
+    delay(500);
+    Serial.println("Setup done");
+}
+
+void loop() {
+    // test 1: observe range that it can reliably detect
+    // closest:
+    // farthest:
+    // put circuit on a ruler and pull back from object (robot, then pillar) until it's not working as expected
+
+    distance = ultra.get_distance();
+    Serial.print("Distance: ");
+    Serial.println(distance);
+    delay(1000);
+
+    // test 2: see if it triggers when objects enter range
+    // range = 10;
+    // boolean = ultra.is_there_obj(range);
+    // Serial.print("Object within range: ");
+    // Serial.println(boolean);
+    // delay(1000);
+
+    // test 3: put ultrasonic on robot to see if we can detect pillars in front range without servo
+    // range =  25;
+    // boolean = ultra.is_there_obj(range);
+    // if (boolean)
+    //     // light an LED?
+    // delay(1000)
+
+}
 
 // ******************* INFRARED SENSOR ******************************************************************************************************
-IRdecision decision = IRdecision(PIN_LEFT, PIN_CENTER, PIN_RIGHT, 10);
-IRsensor sensor = IRsensor(PIN, 1);
+// IRdecision decision = IRdecision(PIN_LEFT, PIN_CENTER, PIN_RIGHT, 10);
+// IRsensor sensor = IRsensor(PIN, 1);
 
-void setup(){
-  Serial.begin(115200); 
-  delay(2000);
-  Serial.println("Setup done");
-}
+// void setup(){
+//   Serial.begin(115200); 
+//   delay(2000);
+//   Serial.println("Setup done");
+// }
 
-void loop() { 
-  sensor.corr();
-  float duration = sensor.duration;
-  float average = sensor.average;
-  float correlation = sensor.correlation;
+// void loop() { 
+//   sensor.corr();
+//   float duration = sensor.duration;
+//   float average = sensor.average;
+//   float correlation = sensor.correlation;
 
-  Serial.print("duration: ");
-  Serial.println(duration*1000000);
+//   Serial.print("duration: ");
+//   Serial.println(duration*1000000);
 
-  Serial.print("average: ");
-  Serial.println(average);
+//   Serial.print("average: ");
+//   Serial.println(average);
 
-  Serial.print("correlation: ");
-  Serial.println(correlation);
+//   Serial.print("correlation: ");
+//   Serial.println(correlation);
 
-  delay(1000);
+//   delay(1000);
 
-  int max_pin;
-  max_pin = decision.strongest_signal();
+//   int max_pin;
+//   max_pin = decision.strongest_signal();
 
-  float left_correlation, center_correlation, right_correlation;
-  left_correlation = decision.corrleft;
-  center_correlation = decision.corrcenter;
-  right_correlation = decision.corrright;
+//   float left_correlation, center_correlation, right_correlation;
+//   left_correlation = decision.corrleft;
+//   center_correlation = decision.corrcenter;
+//   right_correlation = decision.corrright;
 
-  Serial.print("left: ");
-  Serial.println(left_correlation);
+//   Serial.print("left: ");
+//   Serial.println(left_correlation);
 
-  Serial.print("center: ");
-  Serial.println(center_correlation);
+//   Serial.print("center: ");
+//   Serial.println(center_correlation);
 
-  Serial.print("right: ");
-  Serial.println(right_correlation);
+//   Serial.print("right: ");
+//   Serial.println(right_correlation);
 
-  Serial.print("max correlating pin: ");
-  Serial.println(max_pin);
-}
+//   Serial.print("max correlating pin: ");
+//   Serial.println(max_pin);
+// }
 // ******************************************************************************************************************************************
 
 // ******************** ROTARY ENCODER ******************************************************************************************************
