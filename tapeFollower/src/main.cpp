@@ -1,5 +1,4 @@
 //right wheel tends to be faster when speeds are set to be equal
-
 #include <Arduino.h>
 #include <pid.h>
 
@@ -18,7 +17,6 @@
 #define ON 1
 #define OFF 0
 
-
 float clockFreq = 100000;
 float period = 1000;
 
@@ -33,8 +31,6 @@ float leftValue = 0.0;
 float rightValue = 0.0;
 float farLeftValue = 0.0;
 float farRightValue = 0.0;
-
-float turnCounter = 0.0;
 
 float error = 0.0;
 
@@ -72,8 +68,7 @@ void setup() {
 }
 
 void loop() {
-  timeElapsed = (millis() - initialTime)/1000;
-  Serial.println(timeElapsed);
+  timeElapsed = (millis() - initialTime)/1000; // in seconds
 
   leftValue = digitalRead(LEFT_SENSOR);
   rightValue = digitalRead(RIGHT_SENSOR);
@@ -147,7 +142,6 @@ void loop() {
     
     case turnLeft :
       error = 9;
-      turnCounter++;
       leftSpeed = targetSpeed + p_i_d.output_pid(-error);
       rightSpeed = targetSpeed + p_i_d.output_pid(error);
       Serial.println(error);
@@ -177,15 +171,12 @@ void loop() {
       break;  
 
   }
-  // onTrack, leftOff, rightOff, turnLeft, turnRight, white, malfunc... all states
-  if (currentState != onTrack && currentState != white){
-    
+  if (currentState != onTrack && currentState != white)
     previousState = currentState;
-  }
+  
 }
 
 state getState(float left, float right, float farLeft, float farRight){
-  //if, turn logic right here, separate if statement
   // if (farRight == ON) //first check the branch cases to not miss any of the turns
   //   return turnRight; //if we don't see a possible turn, then keep following the "obvious" tape path
   // if ( farLeft == ON ) 
@@ -202,19 +193,8 @@ state getState(float left, float right, float farLeft, float farRight){
 }
 
 void drive(float bwLeft, float fwLeft, float bwRight, float fwRight) {
-  
   fwLeft = capSpeed(fwLeft);
   fwRight = capSpeed(fwRight);
-
-  // if ( fwRight < 0 ) {
-  //   bwRight = -fwRight;
-  //   fwRight = 0;
-  // }
-  // if ( fwLeft < 0 ) {
-  //   bwLeft = -fwLeft;
-  //   fwLeft = 0;
-  // } 
-
   bwLeft = capSpeed(bwLeft);
   bwRight = capSpeed(bwRight);
 
