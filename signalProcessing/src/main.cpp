@@ -25,6 +25,7 @@ ultrasonic ultra = ultrasonic(TRIG, ECHO);
 int distance;
 int range;
 bool yesorno;
+ultrasonic::location loc;
 
 void setup() {
     Serial.begin(115200);
@@ -45,11 +46,11 @@ void loop() {
 
     // test 2: see if it triggers when objects enter range
     // looked at range side to side: at 20cm distance, range right to left is only about 20cm
-    range = 25;
-    yesorno = ultra.is_there_obj(range);
-    Serial.print("Object within range: "); 
-    Serial.println(yesorno); 
-    delay(1000);
+    // range = 25;
+    // yesorno = ultra.is_there_obj(range);
+    // Serial.print("Object within range: "); 
+    // Serial.println(yesorno); 
+    // delay(1000);
 
     // test 3: put ultrasonic on robot to see if we can detect pillars in front range without servo
     // range =  25;
@@ -58,6 +59,38 @@ void loop() {
     //     // light an LED?
     // delay(1000)
 
+    // test 4: put ultrasonic on servo on robot and run from -30 to 30 degrees to see if code is working
+    // observe object detection ability - test cases when we have multiple objects, no objects, one object
+    range = 35;
+    loc = ultra.loc_of_obj(range);
+    Serial.print(ultra.zero);
+    Serial.print(ultra.one);
+    Serial.print(ultra.two);
+    Serial.print(ultra.three);
+    Serial.print(ultra.four);
+    Serial.print(ultra.five);
+    Serial.println(ultra.six);
+
+    // Serial.print("distance of left most pin: ");
+    // Serial.println(ultra.distance_zero);
+
+    Serial.print("Object at location: "); 
+    if (loc == 0)
+        Serial.println("left"); 
+    else if (loc == 1) 
+        Serial.println("left and center"); 
+    else if (loc == 2)
+        Serial.println("center"); 
+    else if (loc == 3)
+        Serial.println("center and right"); 
+    else if (loc == 4)
+        Serial.println("right"); 
+    else if (loc == 5)
+        Serial.println("left and right"); 
+    else if (loc == 6)
+        Serial.println("all"); 
+    else if (loc == 7)
+        Serial.println("no object detected"); 
 }
 
 // ******************* INFRARED SENSOR ******************************************************************************************************
