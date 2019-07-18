@@ -15,6 +15,8 @@ class ultrasonic{
 
         enum location {left, left_center, center, center_right, right, left_right, all, none} loc;
 
+        int zero, one, two, three, four, five, six, distance_zero;
+
         // returns distance in cm to obstacle
         int get_distance();
         // returns bool if there is obstacle within provided range
