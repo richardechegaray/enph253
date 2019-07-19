@@ -150,6 +150,7 @@ void loop() {
       rightValue = digitalRead(RIGHT_SENSOR);
       farLeftValue = digitalRead(FAR_LEFT);
       farRightValue = digitalRead(FAR_RIGHT);
+      currentDistance = mid;
      
       if (midIntensity > closeThreshold) {
         currentDistance = close; 
@@ -165,6 +166,7 @@ void loop() {
       rightValue = digitalRead(RIGHT_SENSOR);
       farLeftValue = digitalRead(FAR_LEFT);
       farRightValue = digitalRead(FAR_RIGHT);
+      currentDistance = close;
 
       if ((leftValue || rightValue || farLeftValue || farRightValue == ON) && (midIntensity > closeThreshold)) {
         currentState = stop;
