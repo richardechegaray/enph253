@@ -75,9 +75,9 @@ void setup() {
 void loop() {
   timeElapsed = (millis() - initialTime)/1000; // in seconds
 
-  if (timeElapsed < 20)
+  if (timeElapsed < 13)
     currentMajorState = upRamp;
-  else if (timeElapsed < 45)
+  else if (timeElapsed < 30)
     currentMajorState = collectPlushie;
   else 
     currentMajorState = depositPlushie;

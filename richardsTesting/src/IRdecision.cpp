@@ -23,17 +23,14 @@ int IRdecision::strongest_signal(){
     corrcenter = center.correlation;
     corrright = right.correlation;
 
-    max_pin = 0;
-
     if ((corrleft > corrcenter) && (corrleft > corrright)){
-        max_pin = pinleft;
+        return pinleft;
     }
     else if ((corrcenter > corrleft) && (corrcenter > corrright)){
-        max_pin = pincenter;
+        return pincenter;
     }
     else if ((corrright > corrleft) && (corrright > corrcenter)){
-        max_pin = pinright;
+        return pinright;
     }
-
-    return max_pin;
+    else return -1;
 };
