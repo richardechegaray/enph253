@@ -64,20 +64,20 @@ enum ultrasonic::location ultrasonic::loc_of_obj(int range){
         delay(250);
     }
 
-    zero = obj_detected[0];
-    one = obj_detected[1];
-    two = obj_detected[2];
-    three = obj_detected[3];
-    four = obj_detected[4];
-    five = obj_detected[5];
-    six = obj_detected[6];
+    // zero = obj_detected[0];
+    // one = obj_detected[1];
+    // two = obj_detected[2];
+    // three = obj_detected[3];
+    // four = obj_detected[4];
+    // five = obj_detected[5];
+    // six = obj_detected[6];
 
     if (obj_detected[0] || obj_detected[1]){
         loc = left;
         if ((obj_detected[2]) || (obj_detected[3]) || (obj_detected[4])){
             loc = left_center;
             if ((obj_detected[5] || obj_detected[6])){
-                loc = center;
+                loc = all;
             }
         }
         else if ((obj_detected[5] || obj_detected[6])){
