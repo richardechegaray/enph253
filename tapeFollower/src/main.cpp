@@ -5,8 +5,13 @@
 #include <Arduino.h>
 #include <pid.h>
 #include "IRdecision.h" 
-#include "ultrasonic.h"
 //40 seconds till u switch
+//---------
+#include <Wire.h>
+#include <Adafruit_SSD1306.h>
+#include <FreeMono9pt7b.h>
+#define OLED_RESET -1 //for reset button
+Adafruit_SSD1306 display(OLED_RESET);
 
 #define FAR_LEFT PB12
 #define LEFT_SENSOR PB13  
@@ -25,8 +30,12 @@
 #define MID_IR PA1
 #define RIGHT_IR PA0
 
-#define TRIG PB10
-#define ECHO PB11
+// #define TX3 PB10
+// #define RX3 PB11
+// HardwareSerial Serial3 = HardwareSerial(RX3, TX3);
+
+#define KP_POTMETER PA0
+#define KD_POTMETER PA1
 
 float clockFreq = 100000;
 float period = 1000;
@@ -55,7 +64,7 @@ float rightValue = 0.0;
 float farLeftValue = 0.0;
 float farRightValue = 0.0;
 
-float error = 0.0;;
+float error = 0.0;
 int numberOfTurns = 0;
 
 enum majorState { upRamp, collectPlushie, depositPlushie, stones/*, shutDown*/ } currentMajorState;
@@ -65,7 +74,8 @@ enum range { far, mid, close } currentDistance;
 
 
 pid p_i_d;
-ultrasonic ultra = ultrasonic(TRIG, ECHO);
+float kp_reading;
+float kd_reading;
 
 #define THANOS 0
 #define METHANOS 1
@@ -85,9 +95,9 @@ void pidStateMachine();
 void irStateMachine();
 void irDrive(range distance);
 
-
 void setup() {
     Serial.begin(115200);
+    Serial3.begin(115200);
 
     pinMode(LEFT_SENSOR, INPUT_PULLUP); 
     pinMode(RIGHT_SENSOR, INPUT_PULLUP); 
@@ -104,12 +114,61 @@ void setup() {
     pwm_start(RIGHT_MOTOR_FW, clockFreq, period, 0, 1); 
     pwm_start(RIGHT_MOTOR_BW, clockFreq, period, 0, 1); 
     p_i_d = pid();
-    initialTime = millis();
     previousPidState = onTrack;
     currentDistance = far;
     currentIrState = initialSpin;
 
+    //potentiometers
+    kd_reading = p_i_d.kd; 
+    kp_reading = p_i_d.kp;
 
+    //display
+    display.begin(SSD1306_SWITCHCAPVCC, 0x3C);
+    display.clearDisplay();
+    display.setTextColor(WHITE);
+    display.setFont(&FreeMono9pt7b);
+
+    initialTime = millis();
+}
+
+void displayPID(){
+  display.clearDisplay();
+  display.setCursor(5,20);
+  display.print("kp:");
+  display.println(p_i_d.kp);
+  display.setCursor(5,40);
+  display.print("kd:");
+  display.println(p_i_d.kd);
+  display.display();
+}
+void displayRefl(){
+  display.clearDisplay();
+  display.setCursor(3,20);
+  display.print("FL:");
+  display.println(farLeftValue); //farleft
+  display.setCursor(65,20);
+  display.print("FR:");
+  display.println(farRightValue); //farright
+  display.setCursor(3, 50);
+  display.print("L:");
+  display.println(leftValue); //midleft
+  display.setCursor(65, 50);
+  display.print("R:");
+  display.println(rightValue); //midright
+  display.display();  
+}
+void displayIR(){
+  display.clearDisplay();
+  display.setCursor(0,20);
+  display.print("L");
+  display.println(decision.corrleft); //left
+  display.setCursor(30,50);
+  display.print("M");
+  display.println(decision.corrcenter); //mid
+  display.setCursor(63,20);
+  display.print("R");
+  display.println(decision.corrright); //right
+  display.display();
 }
 
 void loop() {
@@ -151,7 +210,6 @@ void loop() {
     case stones:
       drive(targetSpeed, 0, targetSpeed, 0);
       break;
-
   }
 }
 
@@ -201,6 +259,17 @@ pidState getPidState(float left, float right, float farLeft, float farRight){
 
 //modular
 void pidStateMachine() {
+
+  //update kp and kd values if we modified with the potentiometer
+  kp_reading = analogRead(KP_POTMETER);
+  if(kp_reading != p_i_d.kp){
+    p_i_d.kp = map(kp_reading, 0, 1023, 0, 500); 
+  }
+  kd_reading = analogRead(KD_POTMETER);
+  if(kd_reading != p_i_d.kd){
+    p_i_d.kd = map(kd_reading, 0, 1023, 0, 500);
+  }
+
   switch ( currentPidState ) { //state machine
 
     case onTrack : //drive straight
@@ -313,6 +382,8 @@ void pidStateMachine() {
 
   // if (numberOfTurns == 1) 
   //   previousPidState == rightOff; //continue to turn left on initial turn
+  displayPID();
+  displayRefl(); //these display 'global values'
 }
 
 //modular
@@ -327,13 +398,11 @@ void irStateMachine() {
         drive(0,0,0,0);
         currentIrState = drivingFar;
       }
+      displayIR(); 
       break;
 
     case drivingFar :
-      // detectionRange = 25; //ultrasonic
-      // if ((ultra.is_there_obj(detectionRange)) && currentState == driving) {
-      // currentState = avoid;  
-      // }
+      
       midIntensity = decision.corrcenter;
 
       if (midIntensity > closeThreshold) {
@@ -345,6 +414,7 @@ void irStateMachine() {
       } 
         
       irDrive(currentDistance);
+      displayIR();
       break;  
 
     case drivingMiddle :
@@ -361,6 +431,7 @@ void irStateMachine() {
       }      
       
       irDrive(currentDistance);
+      displayIR();
       break;
 
     case drivingClose :
@@ -376,6 +447,7 @@ void irStateMachine() {
       }
 
       irDrive(currentDistance);
+      displayIR();
       break;    
 
     // case avoid:
@@ -390,6 +462,7 @@ void irStateMachine() {
       drive(0,0,0,0);
       delay(1500);
       currentMajorState = stones;
+      displayIR();
       break;
   }
 }
@@ -458,4 +531,3 @@ float speedCapOff(float speed) {
   else
     return speed;
 }
-
