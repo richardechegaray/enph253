@@ -1,21 +1,20 @@
 #include <Arduino.h>
 #include "ultrasonic.h"
 #include "SideDoors.h"
-//the following pin initializations could later on go to Robot.cpp, instead of main.cpp:
 
-#define TRIG PB10
-#define ECHO PB11
+#define TRIG PB6
+#define ECHO PB7
 ultrasonic ultra = ultrasonic(TRIG, ECHO);
 ultrasonic::location loc;
 #define RANGE 30 //cm
 
-#define LEFT_DOOR_SERVO PB12
-#define RIGHT_DOOR_SERVO PB13
+#define LEFT_DOOR_SERVO PB13
+#define RIGHT_DOOR_SERVO PB12
 SideDoors side_doors = SideDoors(LEFT_DOOR_SERVO, RIGHT_DOOR_SERVO);
 
-#define TX3 PB10
-#define RX3 PB11
-HardwareSerial Serial3 = HardwareSerial(RX3, TX3);
+// #define TX3 PB10
+// #define RX3 PB11
+// HardwareSerial Serial3 = HardwareSerial(RX3, TX3);
 
 //based on the currentState we receive from the driving MCU, we will close/open the side doors, as well give instructions to the driving MCU when we need to change our path to avoid collision
 //switch case for the state we receive from the driving MCU
@@ -33,12 +32,12 @@ void setup() {
       initialTime = millis();
 }
 
-void serialComm(){
-      int check_available = Serial3.available();
-      while (!check_available)
-            check_available = Serial3.available(); 
-      return;      
-}
+// void serialComm(){
+//       int check_available = Serial3.available();
+//       while (!check_available)
+//             check_available = Serial3.available(); 
+//       return;      
+// }
 
 //turning strategy: turn right or left until main sensors read black again 
 //need to turn left (METHANOS) or right (THANOS) until we read black tape again: in THANOS mode we are running into a pillar on our left, so we need to turn right until we find the tape, and vice versa in METHANOS mode
@@ -52,7 +51,7 @@ void ultrasonicStateMachine(){
         case ultrasonic::left_center:
             //need to turn right until we read black tape again
             //Serial3.write(loc);
-            side_doors.leftDoorWrite(30); //left 90, right same as before
+            side_doors.leftDoorWrite(45); //left 90, right same as before
             break;
         case ultrasonic::center:
             //need to turn left (METHANOS) or right (THANOS) until we read black tape again
@@ -62,7 +61,7 @@ void ultrasonicStateMachine(){
         case ultrasonic::center_right:
             //need to turn left until we read black tape again
             //Serial3.write(loc);
-            side_doors.rightDoorWrite(30);
+            side_doors.rightDoorWrite(45);
             break;
         case ultrasonic::right:
             side_doors.rightDoorWrite(90); //right 90, left same as before
@@ -96,11 +95,21 @@ void loop() {
       //             ultrasonicStateMachine();
       //             break;      
       // }
+      // ultrasonicStateMachine();
+      // Serial.println(loc);
+      // Serial.print(ultra.zero);
+      // Serial.print(ultra.one);
+      // Serial.print(ultra.two);
+      // Serial.print(ultra.three);
+      // Serial.print(ultra.four);
+      // Serial.print(ultra.five);
+      // Serial.println(ultra.six);
+      //delay(200);
       timeElapsed = (millis() - initialTime)/1000;
       if (timeElapsed < 13)
             side_doors.doorsWrite(0); //left 0, right 180
       else if (timeElapsed < 28)
             ultrasonicStateMachine();
-      else{} 
+      else{}
 }
 

@@ -96,7 +96,7 @@ void irDrive(range distance);
 
 void setup() {
     Serial.begin(115200);
-    Serial3.begin(115200);
+    //Serial3.begin(115200);
 
     pinMode(LEFT_SENSOR, INPUT_PULLUP); 
     pinMode(RIGHT_SENSOR, INPUT_PULLUP); 

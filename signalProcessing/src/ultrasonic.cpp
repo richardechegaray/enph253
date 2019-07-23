@@ -3,7 +3,7 @@
 #include "ultrasonic.h"
 
 #define CM 0.034 // this is 0.034 cm/microsecond speed of sound
-#define SERVO_PIN PB4 // needs to be a digital pin
+#define SERVO_PIN PB14 // needs to be a digital pin
 
 ultrasonic::ultrasonic(int pin_trig, int pin_echo):
 trig(pin_trig),
@@ -72,6 +72,11 @@ enum ultrasonic::location ultrasonic::loc_of_obj(int range){
     // five = obj_detected[5];
     // six = obj_detected[6];
 
+    if(obj_detected[0]){
+        loc = left;
+        
+    }
+
     if (obj_detected[0] || obj_detected[1]){
         loc = left;
         if ((obj_detected[2]) || (obj_detected[3]) || (obj_detected[4])){
@@ -99,4 +104,26 @@ enum ultrasonic::location ultrasonic::loc_of_obj(int range){
 
     return loc;
 }
+
+// bool ultrasonic::checkLocation(int index){
+//     return obj;
+// }
+
+// void ultrasonic::checkObject(int range){
+//     int angle_range [] = {150, 130, 110, 90, 70, 50, 30};
+//     int obj_detected [] = {0, 0, 0, 0, 0, 0, 0};
+
+//     for (int i = 0; i < 7; i++){
+//         myservo.write(angle_range[i]);
+//         if (i == 0){
+//             delay(250);
+//             distance_zero = get_distance();
+//         }
+
+//         if (is_there_obj(range)){
+//             obj_detected[i] = 1;
+//         }
+//         delay(250);
+//     }
+// }
 

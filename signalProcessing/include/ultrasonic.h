@@ -24,6 +24,10 @@ class ultrasonic{
         // returns location of object within provided range
         // sweep -30 to 30 degrees
         enum location loc_of_obj(int);
+
+        //void checkObject(int range);
+
+        //bool checkLocation(int index);
 };
 
 // vcc pin requires 5V
