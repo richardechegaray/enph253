@@ -7,15 +7,14 @@
 ultrasonic ultra = ultrasonic(TRIG, ECHO);
 //ultrasonic::location loc;
 ultrasonic::points point;
-#define RANGE 30 //cm
 
 #define LEFT_DOOR_SERVO PB13
 #define RIGHT_DOOR_SERVO PB12
 SideDoors side_doors = SideDoors(LEFT_DOOR_SERVO, RIGHT_DOOR_SERVO);
 
-// #define TX3 PB10
-// #define RX3 PB11
-// HardwareSerial Serial3 = HardwareSerial(RX3, TX3);
+#define TX3 PB10
+#define RX3 PB11
+HardwareSerial Serial3 = HardwareSerial(RX3, TX3);
 
 //based on the currentState we receive from the driving MCU, we will close/open the side doors, as well give instructions to the driving MCU when we need to change our path to avoid collision
 //switch case for the state we receive from the driving MCU
@@ -28,17 +27,17 @@ float timeElapsed;
 
 void setup() {
       Serial.begin(115200);
-      //Serial3.begin(115200);
+      Serial3.begin(115200);
       delay(500);
       initialTime = millis();
 }
 
-// void serialComm(){
-//       int check_available = Serial3.available();
-//       while (!check_available)
-//             check_available = Serial3.available(); 
-//       return;      
-// }
+void serialComm(){
+      int check_available = Serial3.available();
+      while (!check_available)
+            check_available = Serial3.available(); 
+      return;      
+}
 /*
 void ultrasonicStateMachine(){
       loc = ultra.loc_of_obj(RANGE);
@@ -118,35 +117,19 @@ void ultrasonicStateMachine_new(){
 }
 
 void loop() {
+  serialComm();
+  currentMajorState = Serial3.read(); //get the state that the driver MCU is in
+  switch(currentMajorState){
+    case 0: //up-ramp
+      //Serial.println("up-ramp");
+      break;
+    case 1: //collect plushie
       ultrasonicStateMachine_new();
-      // serialComm();
-      // currentMajorState = Serial3.read(); //get the state that the driver MCU is in
-      // switch(currentMajorState){
-      //       case 0: //up-ramp
-      //             side_doors.doorsWrite(0); //left 0, right 180
-      //             break;
-      //       case 1: //collect plushie
-      //             side_doors.doorsWrite(120); //left 120, right 60
-      //             ultrasonicStateMachine();
-      //             break;
-      //       case 2: //deposit plushie
-      //             ultrasonicStateMachine();
-      //             break;      
-      // }
-      //ultrasonicStateMachine();
-      // Serial.println(loc);
-      // Serial.print(ultra.zero);
-      // Serial.print(ultra.one);
-      // Serial.print(ultra.two);
-      // Serial.print(ultra.three);
-      // Serial.print(ultra.four);
-      // Serial.print(ultra.five);
-      // Serial.println(ultra.six);
-      //delay(200);
-      // timeElapsed = (millis() - initialTime)/1000;
-      // if (timeElapsed < 13)
-      //       side_doors.doorsWrite(0); //left 0, right 180
-      // else if (timeElapsed < 28)
-      //       ultrasonicStateMachine();
-      // else{}
+      //Serial.println("collect");
+      break;
+    case 2: //deposit plushie
+      ultrasonicStateMachine_new();
+      //Serial.println("deposit");
+      break;      
+  }
 }

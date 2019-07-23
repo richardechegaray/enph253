@@ -1,12 +1,15 @@
 #include <Arduino.h>
 #include <Servo.h>
 
+#define RANGE 30 //cm
+
 class ultrasonic{
     private:
         int trig;
         int echo;
         Servo myservo;
         int angle;
+        int center_angle;
     public:
         ultrasonic(int, int);
 
@@ -29,7 +32,7 @@ class ultrasonic{
         enum points checkLocation(int);
 
         //center the servo motor:
-        void servo_center(int range);
+        int servo_center(int range);
 };
 
 // vcc pin requires 5V

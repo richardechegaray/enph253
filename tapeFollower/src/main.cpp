@@ -29,9 +29,10 @@ Adafruit_SSD1306 display(OLED_RESET);
 #define LEFT_IR PA7
 #define MID_IR PB0
 #define RIGHT_IR PB1
-// #define TX3 PB10
-// #define RX3 PB11
-// HardwareSerial Serial3 = HardwareSerial(RX3, TX3);
+
+#define TX3 PB10
+#define RX3 PB11
+HardwareSerial Serial3 = HardwareSerial(RX3, TX3);
 
 #define KP_POTMETER PA0
 #define KD_POTMETER PA1
@@ -56,7 +57,6 @@ float closeThreshold = 6000;  //quite close
 
 float midIntensity = -1;
 int highestPin = -1;
-//int detectionRange; uSonic
 
 float leftValue = 0.0;
 float rightValue = 0.0;
@@ -96,7 +96,7 @@ void irDrive(range distance);
 
 void setup() {
     Serial.begin(115200);
-    //Serial3.begin(115200);
+    Serial3.begin(115200);
 
     pinMode(LEFT_SENSOR, INPUT_PULLUP); 
     pinMode(RIGHT_SENSOR, INPUT_PULLUP); 
@@ -126,6 +126,8 @@ void setup() {
     display.clearDisplay();
     display.setTextColor(WHITE);
     display.setFont(&FreeMono9pt7b);
+
+    serialComm();
 
     initialTime = millis();
 }
@@ -170,6 +172,13 @@ void displayIR(){
   display.display();
 }
 
+void serialComm(){
+    int check_available = Serial3.availableForWrite();
+    while (!check_available)
+        check_available = Serial3.availableForWrite();
+    return;
+}
+
 void loop() {
   timeElapsed = (millis() - initialTime)/1000; // in seconds
 
@@ -180,16 +189,12 @@ void loop() {
   else 
     currentMajorState = depositPlushie;
 
+  Serial3.write(currentMajorState);
+
   leftValue = digitalRead(LEFT_SENSOR);
   rightValue = digitalRead(RIGHT_SENSOR);
   farLeftValue = digitalRead(FAR_LEFT);
   farRightValue = digitalRead(FAR_RIGHT);
-
-  // Serial.print((int)farLeftValue);
-  // Serial.print((int)leftValue);
-  // Serial.print((int)rightValue);
-  // Serial.println((int)farRightValue);
-  // delay(700);
 
   switch ( currentMajorState ) { // state machine
     case upRamp:
@@ -262,11 +267,11 @@ void pidStateMachine() {
   //update kp and kd values if we modified with the potentiometer
   kp_reading = analogRead(KP_POTMETER);
   if(kp_reading != p_i_d.kp){
-    p_i_d.kp = map(kp_reading, 0, 1023, 0, 500); 
+    p_i_d.kp = map(kp_reading, 0, 1023, 0, 600); 
   }
   kd_reading = analogRead(KD_POTMETER);
   if(kd_reading != p_i_d.kd){
-    p_i_d.kd = map(kd_reading, 0, 1023, 0, 500);
+    p_i_d.kd = map(kd_reading, 0, 1023, 0, 600);
   }
 
   switch ( currentPidState ) { //state machine
