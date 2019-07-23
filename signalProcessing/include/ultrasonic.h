@@ -7,14 +7,14 @@ class ultrasonic{
         int echo;
         Servo myservo;
         int angle;
-        int *points;
     public:
         ultrasonic(int, int);
 
         unsigned long duration;
         int distance;
 
-        enum location {left, left_center, center, center_right, right, left_right, all, none} loc;
+        //enum location {left, left_center, center, center_right, right, left_right, all, none} loc;
+        enum points {c80, l60, r60, lr60, l40, r40, lr40, l20, r20, lr20, lr0} point; //assign based on "points" (bits), instead of returning the bits or the bit array
 
         int zero, one, two, three, four, five, six, distance_zero;
 
@@ -26,9 +26,10 @@ class ultrasonic{
         // sweep -30 to 30 degrees
         enum location loc_of_obj(int);
 
-        //void checkObject(int range);
+        enum points checkLocation(int);
 
-        //bool checkLocation(int index);
+        //center the servo motor:
+        void servo_center(int range);
 };
 
 // vcc pin requires 5V

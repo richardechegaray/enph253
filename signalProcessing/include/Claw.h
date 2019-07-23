@@ -1,20 +1,26 @@
-#include "Arduino.h"
+//#include "Arduino.h"
 #include "Servo.h"
+#include "Touch.h"
 
-#define CLAW_TOUCH_PIN PB11
-#define CLAW_SERVO_PIN_0 PB10 //move up & down
-#define CLAW_SERVO_PIN_1 PB12 //move right & left
+#define CLAW_QRD PA0
+#define CLAW_SERVO PB12
+#define OPEN_ANGLE 90 //determine
+#define CLOSE_ANGLE 0 //determine
+#define DROP_REFLECTANCE_BEGIN 500
+#define DROP_REFLECTANCE_END 700
+#define LEAD_SCREW_UP PB_11
+#define LEAD_SCREW_DOWN PB_10
 
 class Claw{
     private:
 
     public:
-        static Servo servo_y;
-        static Servo servo_x;
+        static Touch touch_sensors;
+        static Servo claw_servo;
+        static float clockFreq;
+        static float period;
+        static float speed;
         Claw();
-        void moveUp(int degrees);
-        void moveDown(int degrees);
-        void moveLeft(int degrees);
-        void moveRight(int degrees);
-        void grabStone(); //the rest is driving to the stone deposit area        
+        void getStone();
+        void depositStone(); 
 };

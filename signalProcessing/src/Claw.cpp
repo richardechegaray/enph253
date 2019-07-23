@@ -1,40 +1,106 @@
-#include <Arduino.h>
 #include "Claw.h"
 
+Touch Claw::touch_sensors;
+Servo Claw::claw_servo;
+float Claw::clockFreq;
+float Claw::period;
+float Claw::speed;
+
 Claw::Claw(){
-    pinMode(CLAW_TOUCH_PIN, INPUT_PULLUP);
-    servo_y = Servo(); //up&down
-    servo_x = Servo(); //left&right
-    servo_y.attach(CLAW_SERVO_PIN_0);
-    servo_x.attach(CLAW_SERVO_PIN_1);     
+    touch_sensors = Touch(); //create the 3 touch sensor instances
+    claw_servo = Servo();
+    clockFreq = 100000;
+    period = 1000;
+    claw_servo.attach(CLAW_SERVO);
+    claw_servo.write(OPEN_ANGLE);
+    pinMode(LEAD_SCREW_UP, OUTPUT);
+    pinMode(LEAD_SCREW_DOWN, OUTPUT);
+    pinMode(CLAW_QRD, INPUT_PULLUP);
+    pwm_start(LEAD_SCREW_UP, clockFreq, period, 0, 1);
+    pwm_start(LEAD_SCREW_DOWN, clockFreq, period, 0, 1);
+    Serial.begin(9600);
 }
+void Claw::getStone(){
+    //we got info from the ultrasonic sensor that we are close enough to the pillar (we need to drive close enough)
 
-void Claw::moveUp(int degrees){
-    servo_y.write(90+degrees);  
-}
-void Claw::moveDown(int degrees){
-    servo_y.write(90-degrees); 
-}
-void Claw::moveLeft(int degrees){
-    servo_x.write(90-degrees);
-}
-void Claw::moveRight(int degrees){
-    servo_x.write(90+degrees);
-}
-void Claw::grabStone(){
-    //move forward until we read high
-    //start moving upward until we read low
-    //move forward until we touch the stone (if we can't, move the claw up and down and repeat)
-}
+    //if claw touch sensor does not read high (we haven't touched the pillar), keep moving forward -- send info to the drive MCU
+    while(touch_sensors.getClawTouch() == LOW){
+        Serial3.print("move forward");
+    }
 
+    //as soon as claw touch sensor reads high, send info to the drive MCU to stop the wheels
+    Serial3.print("stop");
+
+
+    //now that we have touched the pillar, start moving the lead screw up 
+    bool endOfPillar = false; 
+    while(touch_sensors.getTopTouch() == LOW){
+        if(touch_sensors.getClawTouch() == LOW){
+            endOfPillar = true;
+            break;
+        }
+        //raise the lead screw
+        pwm_start(LEAD_SCREW_UP, clockFreq, period, speed, 1);
+        pwm_start(LEAD_SCREW_DOWN, clockFreq, period, 0, 0);
+    }
+    if(endOfPillar){
+        
+        //stop the lead screw
+        pwm_start(LEAD_SCREW_UP, clockFreq, period, 0, 1);
+        pwm_start(LEAD_SCREW_DOWN, clockFreq, period, 0, 0);
+
+        //close the claw
+        claw_servo.write(CLOSE_ANGLE);
+
+        //move the lead screw a bit upwards, if we can, before backing off the pillar for deposit
+        if(touch_sensors.getTopTouch() == LOW){
+            pwm_start(LEAD_SCREW_UP, clockFreq, period, speed/10, 1);
+            pwm_start(LEAD_SCREW_DOWN, clockFreq, period, 0, 0);
+            delay(1000);
+            pwm_start(LEAD_SCREW_UP, clockFreq, period, 0, 1);
+            pwm_start(LEAD_SCREW_DOWN, clockFreq, period, 0, 0);   
+        }
+
+        //tell the drive MCU that it can back-off and turn for deposit
+        Serial3.println("stone collected");
+
+    } else{
+        //meaning that top read high so we should stop raising the lead screw, but the claw still couldn't reach to the top of the pillar: error case
+        pwm_start(LEAD_SCREW_UP, clockFreq, period, 0, 1);
+        pwm_start(LEAD_SCREW_DOWN, clockFreq, period, 0, 0);
+    }
+}
+void Claw::depositStone(){
+    //motors should be stopped, ready for deposit
+
+    //lower the lead screw until the bottom sensor is touching
+    while(touch_sensors.getBottomTouch() == LOW){
+        pwm_start(LEAD_SCREW_UP, clockFreq, period, 0, 1);
+        pwm_start(LEAD_SCREW_DOWN, clockFreq, period, speed, 0);   
+    } 
+
+    //read from the reflectance sensor, and move if intensity is not "high" enough (and keep repeating this)
+    //move which way?
+    //considerations: 
+    int reflectance = analogRead(CLAW_QRD);
+    while(reflectance < DROP_REFLECTANCE_BEGIN || reflectance > DROP_REFLECTANCE_END){
+        Serial3.println("move");
+        reflectance = analogRead(CLAW_QRD);
+    }
+    //reflectance is in the range
+    claw_servo.write(OPEN_ANGLE);
+
+    Serial3.println("turn around");   
+}
 /*
-1. raise the claw to a sufficient height
-2. keep approaching the pillar (detect with ultrasonic)
-3. keep checking until the touch sensor on the claw hits the pillar
-4. once we touched, start moving the claw upwards
-5. if we read low at any point, move the claw forward a little bit
-6. ensure that we read high for a sufficient amount of time
-7. wait for reading low
-8. when we read low, first make sure we read low for a sufficient amount of time
-9. if yes, move the claw forward and try to grab the stone -- if we detect high, great; if we cannot detect high, move the claw down or up until we read high
- */
+done - the bottom touch sensor will be touching the robot
+done - we will detect the pillar with the claw touch sensor, we will start lifting the screw such that the bottom touch sensor wont be touching the robot anymore
+done - bottom: to not wreck the motors
+done - deposit: we want to lead screw to go close to the robot (read high from bottom)
+done - once we get the stone, move the lead screw up a bit more, backoff the robot, turn
+done - gauntlet: all the way down until bottom sensor is touching again, look at reflectance sensor, open the servo
+done - top: if we ever go too high, we would touch the platform to stop the motors
+done - the top and the bottom touch sensors define the limits that we can move the dc motor on the lead screw (top: platform, bottom: robot)
+done - so check that we dont go over the top touch sensor when grabbing the stone, and check that we dont go over the bottom touch sensor when depositing the stone
+done - additionally use the bottom to go as low as we can for deposit
+*/
