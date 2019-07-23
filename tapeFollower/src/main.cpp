@@ -13,20 +13,18 @@
 #define RIGHT_SENSOR PB14
 #define FAR_RIGHT PB15
 
-#define LEFT_MOTOR_FW PB_9 
-#define LEFT_MOTOR_BW PB_8
-#define RIGHT_MOTOR_FW PB_6
-#define RIGHT_MOTOR_BW PB_7
+#define LEFT_MOTOR_FW PA_3 
+#define LEFT_MOTOR_BW PA_2
+#define RIGHT_MOTOR_FW PA_0
+#define RIGHT_MOTOR_BW PA_1
 
 #define ON 1
 #define OFF 0
 
-#define LEFT_IR PA2
-#define MID_IR PA1
-#define RIGHT_IR PA0
+#define LEFT_IR PA7
+#define MID_IR PB0
+#define RIGHT_IR PB1
 
-#define TRIG PB10
-#define ECHO PB11
 
 float clockFreq = 100000;
 float period = 1000;
@@ -39,7 +37,7 @@ float targetIrSpeed = 25*period/100;
 float targetIrSpeedPlus = 30*period/100;
 float targetIrSpeedMinus = 20*period/100;
 
-float targetSpeed = 50*period/100;
+float targetSpeed = 60*period/100;
 float leftSpeed = targetSpeed;
 float rightSpeed = targetSpeed;
 
@@ -65,11 +63,10 @@ enum range { far, mid, close } currentDistance;
 
 
 pid p_i_d;
-ultrasonic ultra = ultrasonic(TRIG, ECHO);
 
 #define THANOS 0
 #define METHANOS 1
-#define ROLE THANOS
+#define ROLE METHANOS
 
 #if (ROLE == THANOS)
   IRdecision decision = IRdecision(LEFT_IR, MID_IR, RIGHT_IR, 10); //10 kHz
@@ -115,7 +112,7 @@ void setup() {
 void loop() {
   timeElapsed = (millis() - initialTime)/1000; // in seconds
 
-  if (timeElapsed < 13)
+  if (timeElapsed < 15)
     currentMajorState = upRamp;
   else if (timeElapsed < 28)
     currentMajorState = collectPlushie;
@@ -177,7 +174,7 @@ pidState getPidState(float left, float right, float farLeft, float farRight){
       if (numberOfTurns < 2 && currentMajorState == upRamp) { //if its 0 or 1
         numberOfTurns++;
         if (numberOfTurns == 1)  //first turn
-          delay(300); //up ramp delay
+          delay(300); //up ramp delay, used to be 300, now 200
         return turnRight;
       }
     }
@@ -266,7 +263,7 @@ void pidStateMachine() {
     
     case turnLeft :
       if (numberOfTurns == 1)
-        error = 2;  //3
+        error = 2;  
       else
         error = 7; //9
  
@@ -285,7 +282,7 @@ void pidStateMachine() {
 
     case turnRight : //not doing yet
       if (numberOfTurns == 1) 
-        error = 2;  //3
+        error = 2;  
       else
         error = 7;  //9      
       
