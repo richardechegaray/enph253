@@ -15,7 +15,7 @@ void SideDoors::leftDoorWrite(int angle){
 void SideDoors::rightDoorWrite(int angle){
     right_door_servo.write(angle);
 }
-void SideDoors::doorsWrite(int angle){ //pass the angle based on left door position
+void SideDoors::doorsWrite(int angle){
     left_door_servo.write(180-angle);
     right_door_servo.write(angle);
 }

@@ -5,7 +5,8 @@
 #define TRIG PB6
 #define ECHO PB7
 ultrasonic ultra = ultrasonic(TRIG, ECHO);
-ultrasonic::location loc;
+//ultrasonic::location loc;
+ultrasonic::points point;
 #define RANGE 30 //cm
 
 #define LEFT_DOOR_SERVO PB13
@@ -38,10 +39,7 @@ void setup() {
 //             check_available = Serial3.available(); 
 //       return;      
 // }
-
-//turning strategy: turn right or left until main sensors read black again 
-//need to turn left (METHANOS) or right (THANOS) until we read black tape again: in THANOS mode we are running into a pillar on our left, so we need to turn right until we find the tape, and vice versa in METHANOS mode
-//void handleUltrasonicInfo(int turnInfo); : add this to tapeFollower.cpp
+/*
 void ultrasonicStateMachine(){
       loc = ultra.loc_of_obj(RANGE);
       switch(loc){
@@ -79,8 +77,48 @@ void ultrasonicStateMachine(){
             break;        
       }
 }
+*/
+void ultrasonicStateMachine_new(){
+  point = ultra.checkLocation(RANGE);
+  switch(point){
+    case ultrasonic::c80:
+      side_doors.doorsWrite(24);
+      break;
+    case ultrasonic::l60:
+      side_doors.leftDoorWrite(48); //left is 180-angle
+      break;
+    case ultrasonic::r60:
+      side_doors.rightDoorWrite(48);
+      break;
+    case ultrasonic::lr60:
+      side_doors.doorsWrite(48);
+      break;
+    case ultrasonic::l40:
+      side_doors.leftDoorWrite(72);
+      break;
+    case ultrasonic::r40:
+      side_doors.rightDoorWrite(72);
+      break;
+    case ultrasonic::lr40:
+      side_doors.doorsWrite(72);
+      break;
+    case ultrasonic::l20: 
+      side_doors.leftDoorWrite(24);
+      break;
+    case ultrasonic::r20:
+      side_doors.rightDoorWrite(24);
+      break;
+    case ultrasonic::lr20:
+      side_doors.doorsWrite(24);
+      break;
+    case ultrasonic::lr0:
+      side_doors.doorsWrite(120); //normal plushie collection angle!
+      break;
+  }
+}
 
 void loop() {
+      ultrasonicStateMachine_new();
       // serialComm();
       // currentMajorState = Serial3.read(); //get the state that the driver MCU is in
       // switch(currentMajorState){
@@ -95,7 +133,7 @@ void loop() {
       //             ultrasonicStateMachine();
       //             break;      
       // }
-      // ultrasonicStateMachine();
+      //ultrasonicStateMachine();
       // Serial.println(loc);
       // Serial.print(ultra.zero);
       // Serial.print(ultra.one);
@@ -105,11 +143,10 @@ void loop() {
       // Serial.print(ultra.five);
       // Serial.println(ultra.six);
       //delay(200);
-      timeElapsed = (millis() - initialTime)/1000;
-      if (timeElapsed < 13)
-            side_doors.doorsWrite(0); //left 0, right 180
-      else if (timeElapsed < 28)
-            ultrasonicStateMachine();
-      else{}
+      // timeElapsed = (millis() - initialTime)/1000;
+      // if (timeElapsed < 13)
+      //       side_doors.doorsWrite(0); //left 0, right 180
+      // else if (timeElapsed < 28)
+      //       ultrasonicStateMachine();
+      // else{}
 }
-

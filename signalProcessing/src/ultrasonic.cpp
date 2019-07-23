@@ -46,7 +46,7 @@ bool ultrasonic::is_there_obj(int range){
     }
 }
 
-enum ultrasonic::location ultrasonic::loc_of_obj(int range){
+/*enum ultrasonic::location ultrasonic::loc_of_obj(int range){
                          //left ---------->     right
     int angle_range [] = {150, 130, 110, 90, 70, 50, 30};
     int obj_detected [] = {0, 0, 0, 0, 0, 0, 0};
@@ -64,6 +64,8 @@ enum ultrasonic::location ultrasonic::loc_of_obj(int range){
         delay(250);
     }
 
+    
+
     // zero = obj_detected[0];
     // one = obj_detected[1];
     // two = obj_detected[2];
@@ -71,11 +73,6 @@ enum ultrasonic::location ultrasonic::loc_of_obj(int range){
     // four = obj_detected[4];
     // five = obj_detected[5];
     // six = obj_detected[6];
-
-    if(obj_detected[0]){
-        loc = left;
-        
-    }
 
     if (obj_detected[0] || obj_detected[1]){
         loc = left;
@@ -103,27 +100,62 @@ enum ultrasonic::location ultrasonic::loc_of_obj(int range){
     }
 
     return loc;
+}*/
+
+
+enum ultrasonic::points ultrasonic::checkLocation(int range){
+    int angle_range [] = {150, 130, 110, 90, 70, 50, 30};
+    int obj_detected [] = {0, 0, 0, 0, 0, 0, 0};
+
+    for (int i = 0; i < 7; i++){
+        myservo.write(angle_range[i]);
+        if (i == 0){
+            delay(250);
+            distance_zero = get_distance();
+        }
+
+        if (is_there_obj(range)){
+            obj_detected[i] = 1;
+        }
+        delay(250);
+    }
+
+    //check based on bit priority in here so that we dont need to return an array or anything
+    if(obj_detected[3]){
+        return c80;
+    }
+    if(obj_detected[2] || obj_detected[4]){
+        if(obj_detected[2] && !obj_detected[4]){
+            return l60;
+        }
+        else if(!obj_detected[2] && obj_detected[4]){
+            return r60;
+        }
+        else {
+            return lr60;
+        }
+    }
+    if(obj_detected[1] || obj_detected[5]){
+        if(obj_detected[1] && !obj_detected[5]){
+            return l40;
+        }
+        else if(!obj_detected[1] && obj_detected[5]){
+            return r40;
+        }
+        else {
+            return lr40;
+        }
+    }
+    if(obj_detected[0] || obj_detected[6]){
+        if(obj_detected[0] && !obj_detected[6]){
+            return l20;
+        }
+        else if(!obj_detected[0] && obj_detected[6]){
+            return r20;
+        }
+        else {
+            return lr20;
+        }
+    }
+    return lr0;
 }
-
-// bool ultrasonic::checkLocation(int index){
-//     return obj;
-// }
-
-// void ultrasonic::checkObject(int range){
-//     int angle_range [] = {150, 130, 110, 90, 70, 50, 30};
-//     int obj_detected [] = {0, 0, 0, 0, 0, 0, 0};
-
-//     for (int i = 0; i < 7; i++){
-//         myservo.write(angle_range[i]);
-//         if (i == 0){
-//             delay(250);
-//             distance_zero = get_distance();
-//         }
-
-//         if (is_there_obj(range)){
-//             obj_detected[i] = 1;
-//         }
-//         delay(250);
-//     }
-// }
-

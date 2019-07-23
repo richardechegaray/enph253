@@ -7,6 +7,7 @@ class ultrasonic{
         int echo;
         Servo myservo;
         int angle;
+        int *points;
     public:
         ultrasonic(int, int);
 
