@@ -12,8 +12,8 @@ echo(pin_echo)
     pinMode(trig, OUTPUT); 
     pinMode(echo, INPUT);
     myservo.attach(SERVO_PIN);
-    angle = 90;
-    myservo.write(angle);
+    center_angle = servo_center(RANGE);
+    myservo.write(center_angle);
     delay(500);
 }
 
@@ -160,19 +160,22 @@ enum ultrasonic::points ultrasonic::checkLocation(int range){
     return lr0;
 }
 
-void ultrasonic::servo_center(int range){
-    int angle_range [] = {150, 130, 110, 90, 70, 50, 30};
-    int obj_detected [] = {0, 0, 0, 0, 0, 0, 0};
+int ultrasonic::servo_center(int range){
+    int angle_range [] = {150, 140, 130, 120, 110, 100, 90, 80, 70, 60, 50, 40, 30};
+    int obj_detected [] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
-    for (int i = 0; i < 7; i++){
-        myservo.write(angle_range[i]);
+    for(int i = 0; i < sizeof(angle_range)/sizeof(int); i++){
+        myservo.write(angle);
         if (i == 0){
             delay(250);
         }
-
-        if ((i == 3) && is_there_obj(range)){ //stop when we see an obj at 90 degrees position
-            return;
+        if (is_there_obj(range)){
+            obj_detected[i] = 1;
         }
         delay(250);
-    }    
+        if(obj_detected[6]){
+            return angle_range[i];
+        }
+    }
+    return 0;    
 }
