@@ -7,11 +7,11 @@
 #include "IRdecision.h" 
 //40 seconds till u switch
 //---------
-#include <Wire.h>
-#include <Adafruit_SSD1306.h>
-#include <FreeMono9pt7b.h>
-#define OLED_RESET -1 //for reset button
-Adafruit_SSD1306 display(OLED_RESET);
+// #include <Wire.h>
+// #include <Adafruit_SSD1306.h>
+// #include <FreeMono9pt7b.h>
+// #define OLED_RESET -1 //for reset button
+// Adafruit_SSD1306 display(OLED_RESET);
 
 #define FAR_LEFT PB12
 #define LEFT_SENSOR PB13  
@@ -33,8 +33,8 @@ Adafruit_SSD1306 display(OLED_RESET);
 // #define RX3 PB11
 // HardwareSerial Serial3 = HardwareSerial(RX3, TX3);
 
-#define KP_POTMETER PA0
-#define KD_POTMETER PA1
+// #define KP_POTMETER PA0
+// #define KD_POTMETER PA1
 
 float clockFreq = 100000;
 float period = 1000;
@@ -47,7 +47,7 @@ float targetIrSpeed = 25*period/100;
 float targetIrSpeedPlus = 30*period/100;
 float targetIrSpeedMinus = 20*period/100;
 
-float targetSpeed = 60*period/100;
+float targetSpeed = 70*period/100;
 float leftSpeed = targetSpeed;
 float rightSpeed = targetSpeed;
 
@@ -71,10 +71,9 @@ enum pidState { onTrack, leftOff, rightOff, turnLeft, turnRight, white, malfunc}
 enum irState { initialSpin, drivingFar, drivingMiddle, drivingClose, /*avoid,*/ stop} currentIrState;
 enum range { far, mid, close } currentDistance;
 
-
 pid p_i_d;
-float kp_reading;
-float kd_reading;
+// float kp_reading;
+// float kd_reading;
 
 #define THANOS 0
 #define METHANOS 1
@@ -93,6 +92,9 @@ void drive(float bwLeft, float fwLeft, float bwRight, float fwRight);
 void pidStateMachine();
 void irStateMachine();
 void irDrive(range distance);
+// void displayPID();
+// void displayRefl();
+// void displayIR();
 
 void setup() {
     Serial.begin(115200);
@@ -108,7 +110,7 @@ void setup() {
     pinMode(RIGHT_MOTOR_FW,OUTPUT);
     pinMode(RIGHT_MOTOR_BW, OUTPUT);
 
-    pwm_start(LEFT_MOTOR_FW, clockFreq, period, 0, 1); // initializing all motors
+    pwm_start(LEFT_MOTOR_FW, clockFreq, period, 0, 1); // Initializing all motors
     pwm_start(LEFT_MOTOR_BW, clockFreq, period, 0, 1); 
     pwm_start(RIGHT_MOTOR_FW, clockFreq, period, 0, 1); 
     pwm_start(RIGHT_MOTOR_BW, clockFreq, period, 0, 1); 
@@ -116,101 +118,64 @@ void setup() {
     previousPidState = onTrack;
     currentDistance = far;
     currentIrState = initialSpin;
+    currentMajorState = upRamp;
 
-    //potentiometers
-    kd_reading = p_i_d.kd; 
-    kp_reading = p_i_d.kp;
+    // kd_reading = p_i_d.kd; // Potentiometers
+    // kp_reading = p_i_d.kp;
 
-    //display
-    display.begin(SSD1306_SWITCHCAPVCC, 0x3C);
-    display.clearDisplay();
-    display.setTextColor(WHITE);
-    display.setFont(&FreeMono9pt7b);
+    // display.begin(SSD1306_SWITCHCAPVCC, 0x3C); // OLED Display
+    // display.clearDisplay();
+    // display.setTextColor(WHITE);
+    // display.setFont(&FreeMono9pt7b);
 
     initialTime = millis();
 }
 
-void displayPID(){
-  display.clearDisplay();
-  display.setCursor(5,20);
-  display.print("kp:");
-  display.println(p_i_d.kp);
-  display.setCursor(5,40);
-  display.print("kd:");
-  display.println(p_i_d.kd);
-  display.display();
-}
-void displayRefl(){
-  display.clearDisplay();
-  display.setCursor(3,20);
-  display.print("FL:");
-  display.println(farLeftValue); //farleft
-  display.setCursor(65,20);
-  display.print("FR:");
-  display.println(farRightValue); //farright
-  display.setCursor(3, 50);
-  display.print("L:");
-  display.println(leftValue); //midleft
-  display.setCursor(65, 50);
-  display.print("R:");
-  display.println(rightValue); //midright
-  display.display();  
-}
-void displayIR(){
-  display.clearDisplay();
-  display.setCursor(0,20);
-  display.print("L");
-  display.println(decision.corrleft); //left
-  display.setCursor(30,50);
-  display.print("M");
-  display.println(decision.corrcenter); //mid
-  display.setCursor(63,20);
-  display.print("R");
-  display.println(decision.corrright); //right
-  display.display();
-}
-
 void loop() {
-  timeElapsed = (millis() - initialTime)/1000; // in seconds
-
-  if (timeElapsed < 15)
-    currentMajorState = upRamp;
-  else if (timeElapsed < 28)
-    currentMajorState = collectPlushie;
-  else 
-    currentMajorState = depositPlushie;
-
-  leftValue = digitalRead(LEFT_SENSOR);
-  rightValue = digitalRead(RIGHT_SENSOR);
-  farLeftValue = digitalRead(FAR_LEFT);
-  farRightValue = digitalRead(FAR_RIGHT);
-
-  // Serial.print((int)farLeftValue);
-  // Serial.print((int)leftValue);
-  // Serial.print((int)rightValue);
-  // Serial.println((int)farRightValue);
-  // delay(700);
-
-  switch ( currentMajorState ) { // state machine
-    case upRamp:
-      currentPidState = getPidState(leftValue, rightValue, farLeftValue, farRightValue);
-      pidStateMachine();
-      break;
-
-    case collectPlushie:
-      currentPidState = getPidState(leftValue, rightValue, farLeftValue, farRightValue);
-      pidStateMachine();
-      break;
-
-    case depositPlushie:
-      irStateMachine();
-      break;
-
-    case stones:
-      drive(targetSpeed, 0, targetSpeed, 0);
-      break;
-  }
+  
 }
+// void loop() {
+//   timeElapsed = (millis() - initialTime)/1000; // in seconds
+
+//   if (timeElapsed < 15)
+//     currentMajorState = upRamp;
+//   else if (timeElapsed < 28)
+//     currentMajorState = collectPlushie;
+//   else 
+//     currentMajorState = depositPlushie;
+
+//   leftValue = digitalRead(LEFT_SENSOR);
+//   rightValue = digitalRead(RIGHT_SENSOR);
+//   farLeftValue = digitalRead(FAR_LEFT);
+//   farRightValue = digitalRead(FAR_RIGHT);
+
+//   // Serial.print((int)farLeftValue);
+//   // Serial.print((int)leftValue);
+//   // Serial.print((int)rightValue);
+//   // Serial.println((int)farRightValue);
+//   // drive(0, targetSpeed, 0, targetSpeed);
+//   // delay(700);
+
+//   switch ( currentMajorState ) { // state machine
+//     case upRamp:
+//       currentPidState = getPidState(leftValue, rightValue, farLeftValue, farRightValue);
+//       pidStateMachine();
+//       break;
+
+//     case collectPlushie:
+//       currentPidState = getPidState(leftValue, rightValue, farLeftValue, farRightValue);
+//       pidStateMachine();
+//       break;
+
+//     case depositPlushie:
+//       irStateMachine();
+//       break;
+
+//     case stones:
+//       drive(0, 0, 0, 0); //stop
+//       break;
+//   }
+// }
 
 //increase the first turn left delay
 pidState getPidState(float left, float right, float farLeft, float farRight){
@@ -251,23 +216,23 @@ pidState getPidState(float left, float right, float farLeft, float farRight){
     return leftOff;
   else if ( (right == OFF) && (left == ON) )
     return rightOff;
-  else{
+  else
     return white;
-  }    
+     
 }
 
 //modular
 void pidStateMachine() {
 
   //update kp and kd values if we modified with the potentiometer
-  kp_reading = analogRead(KP_POTMETER);
-  if(kp_reading != p_i_d.kp){
-    p_i_d.kp = map(kp_reading, 0, 1023, 0, 500); 
-  }
-  kd_reading = analogRead(KD_POTMETER);
-  if(kd_reading != p_i_d.kd){
-    p_i_d.kd = map(kd_reading, 0, 1023, 0, 500);
-  }
+  // kp_reading = analogRead(KP_POTMETER);
+  // if(kp_reading != p_i_d.kp){
+  //   p_i_d.kp = map(kp_reading, 0, 1023, 0, 500); 
+  // }
+  // kd_reading = analogRead(KD_POTMETER);
+  // if(kd_reading != p_i_d.kd){
+  //   p_i_d.kd = map(kd_reading, 0, 1023, 0, 500);
+  // }
 
   switch ( currentPidState ) { //state machine
 
@@ -379,10 +344,8 @@ void pidStateMachine() {
   if (currentPidState != onTrack && currentPidState != white)
     previousPidState = currentPidState;
 
-  // if (numberOfTurns == 1) 
-  //   previousPidState == rightOff; //continue to turn left on initial turn
-  displayPID();
-  displayRefl(); //these display 'global values'
+  // displayPID();
+  // displayRefl(); //these display 'global values'
 }
 
 //modular
@@ -397,7 +360,7 @@ void irStateMachine() {
         drive(0,0,0,0);
         currentIrState = drivingFar;
       }
-      displayIR(); 
+      //displayIR(); 
       break;
 
     case drivingFar :
@@ -413,7 +376,7 @@ void irStateMachine() {
       } 
         
       irDrive(currentDistance);
-      displayIR();
+      // displayIR();
       break;  
 
     case drivingMiddle :
@@ -430,7 +393,7 @@ void irStateMachine() {
       }      
       
       irDrive(currentDistance);
-      displayIR();
+      // displayIR();
       break;
 
     case drivingClose :
@@ -446,7 +409,7 @@ void irStateMachine() {
       }
 
       irDrive(currentDistance);
-      displayIR();
+      // displayIR();
       break;    
 
     // case avoid:
@@ -457,18 +420,17 @@ void irStateMachine() {
     //   currentState = initialSpin;
     //   break;
     
-    case stop:
+    case stop :
       drive(0,0,0,0);
       delay(1500);
       currentMajorState = stones;
-      displayIR();
+      // displayIR();
       break;
   }
 }
 
 //modular
 void drive(float bwLeft, float fwLeft, float bwRight, float fwRight) { // DO NOT TRY TO RUN FW AND BW DIRECTION FOR ONE WHEEL AT A TIME
-
 
   if ((currentPidState == turnLeft)||(currentPidState == turnRight)) {
     if (fwRight < 0) {
@@ -509,7 +471,9 @@ void irDrive(range distance) {
     speedPlus = 4*targetIrSpeedPlus/5;
     speedMinus = 4*targetIrSpeedMinus/5;
   } else {
-    speed = speedPlus = speedMinus = 0;
+    speed = 0;
+    speedPlus = 0;
+    speedMinus = 0;
   }
 
   highestPin = decision.strongest_signal();
@@ -526,7 +490,47 @@ float speedCapOff(float speed) {
   if (speed>period)
     return period;
   else if (speed<0)
-  return 12*period/100;
+    return 12*period/100;
   else
     return speed;
 }
+
+// void displayPID(){
+//   display.clearDisplay();
+//   display.setCursor(5,20);
+//   display.print("kp:");
+//   display.println(p_i_d.kp);
+//   display.setCursor(5,40);
+//   display.print("kd:");
+//   display.println(p_i_d.kd);
+//   display.display();
+// }
+// void displayRefl(){
+//   display.clearDisplay();
+//   display.setCursor(3,20);
+//   display.print("FL:");
+//   display.println(farLeftValue); //farleft
+//   display.setCursor(65,20);
+//   display.print("FR:");
+//   display.println(farRightValue); //farright
+//   display.setCursor(3, 50);
+//   display.print("L:");
+//   display.println(leftValue); //midleft
+//   display.setCursor(65, 50);
+//   display.print("R:");
+//   display.println(rightValue); //midright
+//   display.display();  
+// }
+// void displayIR(){
+//   display.clearDisplay();
+//   display.setCursor(0,20);
+//   display.print("L");
+//   display.println(decision.corrleft); //left
+//   display.setCursor(30,50);
+//   display.print("M");
+//   display.println(decision.corrcenter); //mid
+//   display.setCursor(63,20);
+//   display.print("R");
+//   display.println(decision.corrright); //right
+//   display.display();
+// }

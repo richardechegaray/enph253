@@ -13,7 +13,7 @@ class ultrasonic{
         unsigned long duration;
         int distance;
 
-        //enum location {left, left_center, center, center_right, right, left_right, all, none} loc;
+        enum location {left, left_center, center, center_right, right, left_right, all, none} loc;
         enum points {c80, l60, r60, lr60, l40, r40, lr40, l20, r20, lr20, lr0} point; //assign based on "points" (bits), instead of returning the bits or the bit array
 
         int zero, one, two, three, four, five, six, distance_zero;

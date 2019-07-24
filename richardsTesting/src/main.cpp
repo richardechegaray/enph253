@@ -13,9 +13,9 @@
 #define RIGHT_MOTOR_FW PB_6
 #define RIGHT_MOTOR_BW PB_7
 
-#define LEFT_IR PA2
-#define MID_IR PA1
-#define RIGHT_IR PA0
+#define LEFT_IR PB0
+#define MID_IR PB1
+#define RIGHT_IR PA7
 
 #define TRIG PB10
 #define ECHO PB11
@@ -41,6 +41,7 @@ float closeThreshold = 6000;  //quite close
 int detectionRange;
 
 enum state { initialSpin, drivingFar, drivingMiddle, drivingClose, /*avoid,*/ stop} currentState;
+// enum state { onTrack, leftOff, rightOff, turnLeft, turnRight, white, malfunc } currentState, previousState;
 enum range { far, mid, close } currentDistance;
 
 
@@ -57,12 +58,13 @@ int strongestSignal;
 float capSpeed(float speed);
 void drive(float bwLeft, float fwLeft, float bwRight, float fwRight);
 void irDrive(range distance);
+state getState(float left, float right);
 /** FUNCTION DEFINITIONS - END **/
 
 ultrasonic ultra = ultrasonic(TRIG, ECHO);
 IRdecision decision = IRdecision(LEFT_IR, MID_IR, RIGHT_IR, 1); //1 kHz
 
-void setup(){
+/*void setup(){
   Serial.begin(115200); 
   pinMode(LEFT_SENSOR, INPUT_PULLUP); 
   pinMode(RIGHT_SENSOR, INPUT_PULLUP); 
@@ -80,10 +82,29 @@ void setup(){
   pwm_start(RIGHT_MOTOR_BW, clockFreq, period, 0, 1);   
   currentDistance = far;
   currentState = initialSpin;
+}*/
+
+void setup() {
+    Serial.begin(115200);
+
+    pinMode(LEFT_SENSOR, INPUT_PULLUP); 
+    pinMode(RIGHT_SENSOR, INPUT_PULLUP); 
+    pinMode(FAR_LEFT, INPUT_PULLUP);
+    pinMode(FAR_RIGHT, INPUT_PULLUP);
+        
+    pinMode(LEFT_MOTOR_FW, OUTPUT);
+    pinMode(LEFT_MOTOR_BW, OUTPUT);
+    pinMode(RIGHT_MOTOR_FW,OUTPUT);
+    pinMode(RIGHT_MOTOR_BW, OUTPUT);
+
+    pwm_start(LEFT_MOTOR_FW, clockFreq, period, 0, 1); // initializing all motors
+    pwm_start(LEFT_MOTOR_BW, clockFreq, period, 0, 1); 
+    pwm_start(RIGHT_MOTOR_FW, clockFreq, period, 0, 1); 
+    pwm_start(RIGHT_MOTOR_BW, clockFreq, period, 0, 1); 
 }
 
 void loop() {
-  /*number = decision.strongest_signal();
+  number = decision.strongest_signal();
   if (number == LEFT_IR) 
     Serial.println("Left!!!");
   else if (number == MID_IR) 
@@ -105,9 +126,9 @@ void loop() {
   Serial.println(rightIntensity);
   Serial.print("Max correlation pin: ");
   
-  delay(1000);*/
+  delay(1000);
 
- /**/switch ( currentState ) { //state machine
+ /*switch ( currentState ) { //state machine
 
     case initialSpin : //drive straight
       highestPin = decision.strongest_signal();
@@ -188,7 +209,7 @@ void loop() {
     case stop:
       drive(0,0,0,0);
       break;
- }/**/
+ }*/
 }
 
 void irDrive(range distance) {
@@ -236,7 +257,7 @@ float capSpeed(float speed) {
   if (speed>period)
     return period;
   else if (speed<0)
-  return period/10;
+  return 12*period/100;
   else
     return speed;
 }
