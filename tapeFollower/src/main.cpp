@@ -79,7 +79,7 @@ pid p_i_d;
 
 #define THANOS 0
 #define METHANOS 1
-#define ROLE THANOS
+#define ROLE METHANOS
 
 #if (ROLE == THANOS)
   IRdecision decision = IRdecision(LEFT_IR, MID_IR, RIGHT_IR, 10); //10 kHz
@@ -133,6 +133,7 @@ void setup() {
 
     // serialComm();
 
+    delay(4500);
     initialTime = millis();
 }
 

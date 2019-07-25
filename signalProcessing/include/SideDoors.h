@@ -12,6 +12,10 @@ class SideDoors{
         void leftDoorWrite(int angle);
         void rightDoorWrite(int angle);
         void doorsWrite(int angle);
+        void doorsClose();
+        void doorsTogether();
+        void doorsOpenT();
+        void doorsOpenM();
         int getLeftAngle();
         int getRightAngle();
 };
