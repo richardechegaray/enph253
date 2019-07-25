@@ -23,10 +23,8 @@ HardwareSerial Serial3 = HardwareSerial(RX3, TX3);
 #define RAMP_TIME 12
 #define COLLECT_TIME 24
 
-
-
-enum majorState { upRamp, collectPlushie, depositPlushie, /*stones, shutDown*/ } currentMajorState;
-
+//enum majorState { upRamp, collectPlushie, depositPlushie, /*stones, shutDown*/ } currentMajorState;
+int currentMajorState;
 
 //based on the currentState we receive from the driving MCU, we will close/open the side doors, as well give instructions to the driving MCU when we need to change our path to avoid collision
 //switch case for the state we receive from the driving MCU
@@ -36,16 +34,74 @@ enum majorState { upRamp, collectPlushie, depositPlushie, /*stones, shutDown*/ }
 float initialTime;
 float timeElapsed;
 
-// void serialComm();
+void serialComm();
 // void ultrasonicStateMachine_new();
 
 void setup() {
   Serial.begin(115200);
-  //Serial3.begin(115200);
-  currentMajorState = upRamp;
-  initialTime = millis();
+  Serial3.begin(115200);
+  serialComm();
+  //currentMajorState = upRamp;
+  //initialTime = millis();
 }
 
+void loop() {  
+  // ---- hard-coding the time like the slave MCU -----
+
+  // timeElapsed = (millis() - initialTime)/1000; // in seconds
+  // if (timeElapsed < RAMP_TIME)
+  //   currentMajorState = upRamp;
+  // else if (timeElapsed < COLLECT_TIME)
+  //   currentMajorState = collectPlushie;
+  // else {
+  //     currentMajorState = depositPlushie;
+  // }
+
+
+  // ---- receiving the state from the slave MCU ----
+  currentMajorState = Serial3.read(); //get the state that the driver MCU is in
+  switch (currentMajorState) {
+    case 0:
+      side_doors.doorsClose();
+      break;
+
+    case 1:
+      #if (ROLE == THANOS)
+        side_doors.doorsOpenT();
+      #elif (ROLE == METHANOS)
+        side_doors.doorsOpenM();
+      #endif
+      break;
+    
+    case 2:
+      side_doors.doorsTogether();
+      break;
+
+    case -1:
+      break; //if it reads -1, this means no data was available
+  }
+
+  /*switch(currentMajorState){
+    case 0: //up-ramp
+      //Serial.println("up-ramp");
+      break;
+    case 1: //collect plushie
+      ultrasonicStateMachine_new();
+      //Serial.println("collect");
+      break;
+    case 2: //deposit plushie
+      ultrasonicStateMachine_new();
+      //Serial.println("deposit");
+      break;      
+  }*/
+}
+
+void serialComm(){
+      int check_available = Serial3.available();
+      while (!check_available)
+            check_available = Serial3.available(); 
+      return;      
+}
 
 /*
 void ultrasonicStateMachine(){
@@ -86,76 +142,6 @@ void ultrasonicStateMachine(){
       }
 }
 */
-// void loop() {
-//   side_doors.doorsClose();
-// }
-
-void loop() {  
-  timeElapsed = (millis() - initialTime)/1000; // in seconds
-
-  if (timeElapsed < RAMP_TIME)
-    currentMajorState = upRamp;
-  else if (timeElapsed < COLLECT_TIME)
-    currentMajorState = collectPlushie;
-  else {
-      currentMajorState = depositPlushie;
-  }
-
-  switch (currentMajorState) {
-    case upRamp:
-      side_doors.doorsClose();
-      break;
-
-    case collectPlushie:
-      #if (ROLE == THANOS)
-        side_doors.doorsOpenT();
-      #elif (ROLE == METHANOS)
-        side_doors.doorsOpenM();
-      #endif
-      break;
-    
-    case depositPlushie:
-      side_doors.doorsTogether();
-      break;
-  }
-  // serialComm();
-  //currentMajorState = Serial3.read(); //get the state that the driver MCU is in
-  /*switch(currentMajorState){
-    case 0: //up-ramp
-      //Serial.println("up-ramp");
-      break;
-    case 1: //collect plushie
-      ultrasonicStateMachine_new(); 
-      //Serial.println("collect");
-      break;
-    case 2: //deposit plushie
-      ultrasonicStateMachine_new();
-      //Serial.println("deposit");
-      break;      
-  }
-    ultrasonicStateMachine_new();
-
-  switch(currentMajorState){
-    case 0: //up-ramp
-      //Serial.println("up-ramp");
-      break;
-    case 1: //collect plushie
-      ultrasonicStateMachine_new();
-      //Serial.println("collect");
-      break;
-    case 2: //deposit plushie
-      ultrasonicStateMachine_new();
-      //Serial.println("deposit");
-      break;      
-  }*/
-}
-
-void serialComm(){
-      int check_available = Serial3.available();
-      while (!check_available)
-            check_available = Serial3.available(); 
-      return;      
-}
 
 /*void ultrasonicStateMachine_new(){
   point = ultra.checkLocation(RANGE);
