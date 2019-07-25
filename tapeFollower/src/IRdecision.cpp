@@ -19,9 +19,9 @@ int IRdecision::strongest_signal(){
     center.corr();
     right.corr();
 
-    corrleft = left.correlation;
-    corrcenter = center.correlation;
-    corrright = right.correlation;
+    corrleft = 4*left.correlation/3;  //EDITED TO COMPENSATE MID INTENSITY
+    corrcenter = center.correlation/5;
+    corrright = 4*right.correlation/3;
 
     if ((corrleft > corrcenter) && (corrleft > corrright)){
         return pinleft;

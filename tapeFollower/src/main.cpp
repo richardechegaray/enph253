@@ -5,8 +5,6 @@
 #include <Arduino.h>
 #include <pid.h>
 #include "IRdecision.h" 
-//40 seconds till u switch
-//---------
 // #include <Wire.h>
 // #include <Adafruit_SSD1306.h>
 // #include <FreeMono9pt7b.h>
@@ -26,13 +24,16 @@
 #define ON 1
 #define OFF 0
 
-#define LEFT_IR PA7
-#define MID_IR PB0
-#define RIGHT_IR PB1
+#define LEFT_IR PB0
+#define MID_IR PB1
+#define RIGHT_IR PA7
 
 #define TX3 PB10
 #define RX3 PB11
-HardwareSerial Serial3 = HardwareSerial(RX3, TX3);
+
+#define RAMP_TIME 15
+#define COLLECT_TIME 27
+//HardwareSerial Serial3 = HardwareSerial(RX3, TX3);
 
 // #define KP_POTMETER PA0
 // #define KD_POTMETER PA1
@@ -48,12 +49,13 @@ float targetIrSpeed = 25*period/100;
 float targetIrSpeedPlus = 30*period/100;
 float targetIrSpeedMinus = 20*period/100;
 
-float targetSpeed = 70*period/100;
+float targetSpeed = 60*period/100;
 float leftSpeed = targetSpeed;
 float rightSpeed = targetSpeed;
 
-float midThreshold = 5000; //past columns
-float closeThreshold = 6000;  //quite close
+float irStartThreshold = 900;
+float midThreshold = 1000; //past columns
+float closeThreshold = 1550;  //quite close
 
 float midIntensity = -1;
 int highestPin = -1;
@@ -62,14 +64,14 @@ float leftValue = 0.0;
 float rightValue = 0.0;
 float farLeftValue = 0.0;
 float farRightValue = 0.0;
+bool irDefined;
 
 float error = 0.0;
 int numberOfTurns = 0;
 
 enum majorState { upRamp, collectPlushie, depositPlushie, stones/*, shutDown*/ } currentMajorState;
 enum pidState { onTrack, leftOff, rightOff, turnLeft, turnRight, white, malfunc} currentPidState, previousPidState;
-enum irState { initialSpin, drivingFar, drivingMiddle, drivingClose, /*avoid,*/ stop} currentIrState;
-enum range { far, mid, close } currentDistance;
+enum irState { initialSpin, drivingFar, drivingClose, /*avoid,*/ stop} currentIrState;
 
 pid p_i_d;
 // float kp_reading;
@@ -77,7 +79,7 @@ pid p_i_d;
 
 #define THANOS 0
 #define METHANOS 1
-#define ROLE METHANOS
+#define ROLE THANOS
 
 #if (ROLE == THANOS)
   IRdecision decision = IRdecision(LEFT_IR, MID_IR, RIGHT_IR, 10); //10 kHz
@@ -91,14 +93,15 @@ pidState getPidState(float left, float right, float farLeft, float farRight);
 void drive(float bwLeft, float fwLeft, float bwRight, float fwRight);
 void pidStateMachine();
 void irStateMachine();
-void irDrive(range distance);
+void irDrive(irState currentIrState);
+void serialComm();
 // void displayPID();
 // void displayRefl();
 // void displayIR();
 
 void setup() {
     Serial.begin(115200);
-    Serial3.begin(115200);
+    //Serial3.begin(115200);
 
     pinMode(LEFT_SENSOR, INPUT_PULLUP); 
     pinMode(RIGHT_SENSOR, INPUT_PULLUP); 
@@ -116,9 +119,9 @@ void setup() {
     pwm_start(RIGHT_MOTOR_BW, clockFreq, period, 0, 1); 
     p_i_d = pid();
     previousPidState = onTrack;
-    currentDistance = far;
     currentIrState = initialSpin;
     currentMajorState = upRamp;
+    irDefined = false;
 
     // kd_reading = p_i_d.kd; // Potentiometers
     // kp_reading = p_i_d.kp;
@@ -128,34 +131,43 @@ void setup() {
     // display.setTextColor(WHITE);
     // display.setFont(&FreeMono9pt7b);
 
-    serialComm();
+    // serialComm();
 
     initialTime = millis();
-}
-
-void serialComm(){
-    int check_available = Serial3.availableForWrite();
-    while (!check_available)
-        check_available = Serial3.availableForWrite();
-    return;
 }
 
 void loop() {
   timeElapsed = (millis() - initialTime)/1000; // in seconds
 
-  if (timeElapsed < 15)
+  if (timeElapsed < RAMP_TIME)
     currentMajorState = upRamp;
-  else if (timeElapsed < 28)
+  else if (timeElapsed < COLLECT_TIME)
     currentMajorState = collectPlushie;
-  else 
-    currentMajorState = depositPlushie;
+  else if (currentIrState == stop)
+    currentMajorState = stones;
+  else {
+    if (irDefined == false) {
+      irDefined = true;
+      currentMajorState = depositPlushie;
+    }
+  }
+  // if (irDefined == false) {
+  //   irDefined = true;
+  //   currentMajorState = depositPlushie;
+  // }
 
-  Serial3.write(currentMajorState);
+  //Serial3.write(currentMajorState); //new
 
   leftValue = digitalRead(LEFT_SENSOR);
   rightValue = digitalRead(RIGHT_SENSOR);
   farLeftValue = digitalRead(FAR_LEFT);
   farRightValue = digitalRead(FAR_RIGHT);
+  // Serial.print((int)farLeftValue);
+  // Serial.print((int)leftValue);
+  // Serial.print((int)rightValue);
+  // Serial.println((int)farRightValue);
+  // drive(0, targetSpeed, 0, targetSpeed);
+  // delay(700);
 
   switch ( currentMajorState ) { // state machine
     case upRamp:
@@ -173,62 +185,21 @@ void loop() {
       break;
 
     case stones:
-      drive(targetSpeed, 0, targetSpeed, 0);
+      drive(0, 0, 0, 0);
       break;
   }
 }
-// void loop() {
-//   timeElapsed = (millis() - initialTime)/1000; // in seconds
-
-//   if (timeElapsed < 15)
-//     currentMajorState = upRamp;
-//   else if (timeElapsed < 28)
-//     currentMajorState = collectPlushie;
-//   else 
-//     currentMajorState = depositPlushie;
-
-//   leftValue = digitalRead(LEFT_SENSOR);
-//   rightValue = digitalRead(RIGHT_SENSOR);
-//   farLeftValue = digitalRead(FAR_LEFT);
-//   farRightValue = digitalRead(FAR_RIGHT);
-
-//   // Serial.print((int)farLeftValue);
-//   // Serial.print((int)leftValue);
-//   // Serial.print((int)rightValue);
-//   // Serial.println((int)farRightValue);
-//   // drive(0, targetSpeed, 0, targetSpeed);
-//   // delay(700);
-
-//   switch ( currentMajorState ) { // state machine
-//     case upRamp:
-//       currentPidState = getPidState(leftValue, rightValue, farLeftValue, farRightValue);
-//       pidStateMachine();
-//       break;
-
-//     case collectPlushie:
-//       currentPidState = getPidState(leftValue, rightValue, farLeftValue, farRightValue);
-//       pidStateMachine();
-//       break;
-
-//     case depositPlushie:
-//       irStateMachine();
-//       break;
-
-//     case stones:
-//       drive(0, 0, 0, 0); //stop
-//       break;
-//   }
-// }
+ 
 
 //increase the first turn left delay
 pidState getPidState(float left, float right, float farLeft, float farRight){
 
   #if (ROLE == THANOS) 
     if (farLeft == ON) {
-      if (numberOfTurns < 2 && currentMajorState == upRamp) { //if its 0 or 1
+      if (currentMajorState == upRamp) { //if its 0 or 1
         numberOfTurns++;
         if (numberOfTurns == 1)  //first turn
-          delay(300); //up ramp delay
+          delay(400); //up ramp delay
         return turnLeft;
       }
     }
@@ -239,10 +210,10 @@ pidState getPidState(float left, float right, float farLeft, float farRight){
     }
   #elif (ROLE == METHANOS) 
     if (farRight == ON) {
-      if (numberOfTurns < 2 && currentMajorState == upRamp) { //if its 0 or 1
+      if (currentMajorState == upRamp) { //if its 0 or 1 //got rid of number of turns <2
         numberOfTurns++;
         if (numberOfTurns == 1)  //first turn
-          delay(300); //up ramp delay, used to be 300, now 200
+          delay(400); //up ramp delay, used to be 300
         return turnRight;
       }
     }
@@ -276,8 +247,6 @@ void pidStateMachine() {
   // if(kd_reading != p_i_d.kd){
   //   p_i_d.kd = map(kd_reading, 0, 1023, 0, 500);
   // }
-
-
   switch ( currentPidState ) { //state machine
 
     case onTrack : //drive straight
@@ -343,9 +312,9 @@ void pidStateMachine() {
     
     case turnLeft :
       if (numberOfTurns == 1)
-        error = 2;  
+        error = 2.5;  //2
       else
-        error = 7; //9
+        error = 4; //9
  
       leftSpeed  = targetSpeed + p_i_d.output_pid(-error);
       rightSpeed = targetSpeed + p_i_d.output_pid(error);
@@ -362,9 +331,9 @@ void pidStateMachine() {
 
     case turnRight : //not doing yet
       if (numberOfTurns == 1) 
-        error = 2;  
+        error = 2.5;  //2
       else
-        error = 7;  //9      
+        error = 4;  //9      
       
       leftSpeed = targetSpeed + p_i_d.output_pid(error);
       rightSpeed = targetSpeed + p_i_d.output_pid(-error);
@@ -392,15 +361,37 @@ void pidStateMachine() {
   // displayRefl(); //these display 'global values'
 }
 
-//modular
 void irStateMachine() {
+  /*float number = decision.strongest_signal();
+  if (number == LEFT_IR) 
+    Serial.println("Left!!!");
+  else if (number == MID_IR) 
+    Serial.println("Middle!!!");
+  else if (number == RIGHT_IR) 
+    Serial.println("Right!!!");
+  else 
+    Serial.println("error finding max");
+
+  float leftIntensity = decision.corrleft;
+  midIntensity = decision.corrcenter;
+  float rightIntensity = decision.corrright;
+
+  Serial.print("Left: ");
+  Serial.println(leftIntensity);
+  Serial.print("Middle: ");
+  Serial.println(midIntensity);
+  Serial.print("Right: ");
+  Serial.println(rightIntensity);
+  Serial.print("Max correlation pin: ");
+  
+  delay(1000);*/
   switch ( currentIrState ) { //state machine
     case initialSpin : //drive straight
       highestPin = decision.strongest_signal();
       midIntensity = decision.corrcenter;
-      drive(spinSpeed, 0, 0, spinSpeed); // spin CCW
+      drive(0, spinSpeed, spinSpeed, 0); // spin CW if methanos
       
-      if ((highestPin == MID_IR) && (midIntensity > 100)) {
+      if ((highestPin == MID_IR) && (midIntensity > irStartThreshold)) {
         drive(0,0,0,0);
         currentIrState = drivingFar;
       }
@@ -408,37 +399,13 @@ void irStateMachine() {
       break;
 
     case drivingFar :
-      
       midIntensity = decision.corrcenter;
-
       if (midIntensity > closeThreshold) {
-        currentDistance = close; 
         currentIrState = drivingClose;
-      } else if (midIntensity > midThreshold) {
-        currentDistance = mid;
-        currentIrState = drivingMiddle;
       } 
-        
-      irDrive(currentDistance);
+      irDrive(currentIrState);
       // displayIR();
       break;  
-
-    case drivingMiddle :
-      midIntensity = decision.corrcenter;
-     
-      if (midIntensity > closeThreshold) {
-        currentDistance = close; 
-        currentIrState = drivingClose;
-      } 
-
-     if (leftValue || rightValue || farLeftValue || farRightValue == ON) {
-        currentIrState = stop;
-        break;
-      }      
-      
-      irDrive(currentDistance);
-      // displayIR();
-      break;
 
     case drivingClose :
       midIntensity = decision.corrcenter;
@@ -447,33 +414,23 @@ void irStateMachine() {
       farLeftValue = digitalRead(FAR_LEFT);
       farRightValue = digitalRead(FAR_RIGHT);
 
-      if (leftValue || rightValue || farLeftValue || farRightValue == ON) {
+      if ((leftValue == ON) || (rightValue  == ON) || (farLeftValue  == ON) || (farRightValue == ON)) {
         currentIrState = stop;
         break;
       }
-
-      irDrive(currentDistance);
+      irDrive(currentIrState);
       // displayIR();
       break;    
-
-    // case avoid:
-    //   drive(targetSpeed*2, 0, 0, targetSpeed*2);
-    //   delay(300);
-    //   drive(0, targetSpeed*2, 0, targetSpeed*2);
-    //   delay(600);
-    //   currentState = initialSpin;
-    //   break;
     
     case stop :
       drive(0,0,0,0);
-      delay(1500);
-      currentMajorState = stones;
+      delay(500);
+      // currentMajorState = stones;
       // displayIR();
       break;
   }
 }
 
-//modular
 void drive(float bwLeft, float fwLeft, float bwRight, float fwRight) { // DO NOT TRY TO RUN FW AND BW DIRECTION FOR ONE WHEEL AT A TIME
 
   if ((currentPidState == turnLeft)||(currentPidState == turnRight)) {
@@ -499,19 +456,15 @@ void drive(float bwLeft, float fwLeft, float bwRight, float fwRight) { // DO NOT
 }
 
 //modular
-void irDrive(range distance) {
+void irDrive(irState currentIrState) {
   float speed, speedPlus, speedMinus;
 
-  if (distance == far) {
-    speed = targetSpeed; // turn sharper if far away
-    speedPlus = 110*targetIrSpeedPlus/100;
-    speedMinus = 110*targetIrSpeedMinus/100;
-  } else if (distance == mid) {
-    speed = targetSpeed;
+  if (currentIrState == drivingFar) {
+    speed = targetIrSpeed; // turn sharper if far away
     speedPlus = targetIrSpeedPlus;
     speedMinus = targetIrSpeedMinus;
-  } else if (distance == close) {
-    speed = 4*targetSpeed/5;
+  } else if (currentIrState == drivingClose) {
+    speed = 4*targetIrSpeed/5;
     speedPlus = 4*targetIrSpeedPlus/5;
     speedMinus = 4*targetIrSpeedMinus/5;
   } else {
@@ -538,6 +491,13 @@ float speedCapOff(float speed) {
   else
     return speed;
 }
+
+// void serialComm(){
+//     int check_available = Serial3.availableForWrite();
+//     while (!check_available)
+//         check_available = Serial3.availableForWrite();
+//     return;
+// }
 
 // void displayPID(){
 //   display.clearDisplay();

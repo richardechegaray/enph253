@@ -19,9 +19,16 @@ int IRdecision::strongest_signal(){
     center.corr();
     right.corr();
 
-    corrleft = left.correlation;
-    corrcenter = center.correlation;
-    corrright = right.correlation;
+    corrleft = 4*left.correlation/3;
+    corrcenter = (center.correlation)/5;  //EDITED TO COMPENSATE MID INTENSITY
+    corrright = 4*right.correlation/3;
+
+    // Serial.print("LeftC: ");
+    // Serial.println(corrleft);
+    // Serial.print("Middle/2C: ");
+    // Serial.println(corrcenter);
+    // Serial.print("RighCt: ");
+    // Serial.println(corrright);
 
     if ((corrleft > corrcenter) && (corrleft > corrright)){
         return pinleft;

@@ -8,10 +8,10 @@
 #define RIGHT_SENSOR PB14
 #define FAR_RIGHT PB15
 
-#define LEFT_MOTOR_FW PB_9 
-#define LEFT_MOTOR_BW PB_8
-#define RIGHT_MOTOR_FW PB_6
-#define RIGHT_MOTOR_BW PB_7
+#define LEFT_MOTOR_FW PA_3 
+#define LEFT_MOTOR_BW PA_2
+#define RIGHT_MOTOR_FW PA_0
+#define RIGHT_MOTOR_BW PA_1
 
 #define LEFT_IR PB0
 #define MID_IR PB1
@@ -35,8 +35,8 @@ float targetSpeedMinus = 20*period/100;
 
 int leftValue, rightValue, farLeftValue, farRightValue;
 
-float midThreshold = 5000; //past columns
-float closeThreshold = 6000;  //quite close
+float midThreshold = 2000; //past columns
+float closeThreshold = 2200;  //quite close
 
 int detectionRange;
 
@@ -104,38 +104,38 @@ void setup() {
 }
 
 void loop() {
-  number = decision.strongest_signal();
-  if (number == LEFT_IR) 
-    Serial.println("Left!!!");
-  else if (number == MID_IR) 
-    Serial.println("Middle!!!");
-  else if (number == RIGHT_IR) 
-    Serial.println("Right!!!");
-  else 
-    Serial.println("error finding max");
+  // number = decision.strongest_signal();
+  // if (number == LEFT_IR) 
+  //   Serial.println("Left!!!");
+  // else if (number == MID_IR) 
+  //   Serial.println("Middle!!!");
+  // else if (number == RIGHT_IR) 
+  //   Serial.println("Right!!!");
+  // else 
+  //   Serial.println("error finding max");
 
-  leftIntensity = decision.corrleft;
-  midIntensity = decision.corrcenter;
-  rightIntensity = decision.corrright;
+  // leftIntensity = decision.corrleft;
+  // midIntensity = decision.corrcenter;
+  // rightIntensity = decision.corrright;
 
-  Serial.print("Left: ");
-  Serial.println(leftIntensity);
-  Serial.print("Middle: ");
-  Serial.println(midIntensity);
-  Serial.print("Right: ");
-  Serial.println(rightIntensity);
-  Serial.print("Max correlation pin: ");
+  // Serial.print("Left: ");
+  // Serial.println(leftIntensity);
+  // Serial.print("Middle: ");
+  // Serial.println(midIntensity);
+  // Serial.print("Right: ");
+  // Serial.println(rightIntensity);
+  // Serial.print("Max correlation pin: ");
   
-  delay(1000);
+  // delay(1000);
 
- /*switch ( currentState ) { //state machine
+ switch ( currentState ) { //state machine
 
     case initialSpin : //drive straight
       highestPin = decision.strongest_signal();
       midIntensity = decision.corrcenter;
       drive(spinSpeed, 0, 0, spinSpeed); // spin CCW
       
-      if ((highestPin == MID_IR) && (midIntensity > 100)) {
+      if ((highestPin == MID_IR) && (midIntensity > 1000)) {
         drive(0,0,0,0);
         currentState = drivingFar;
       }
@@ -209,7 +209,7 @@ void loop() {
     case stop:
       drive(0,0,0,0);
       break;
- }*/
+ }
 }
 
 void irDrive(range distance) {
