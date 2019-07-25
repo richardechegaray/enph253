@@ -111,7 +111,7 @@ enum ultrasonic::points ultrasonic::checkLocation(int range){
         myservo.write(angle_range[i]);
         if (i == 0){
             delay(250);
-            distance_zero = get_distance();
+            //distance_zero = get_distance();
         }
 
         if (is_there_obj(range)){

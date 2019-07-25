@@ -30,10 +30,10 @@
 
 #define TX3 PB10
 #define RX3 PB11
+HardwareSerial Serial3 = HardwareSerial(RX3, TX3);
 
 #define RAMP_TIME 15
 #define COLLECT_TIME 27
-//HardwareSerial Serial3 = HardwareSerial(RX3, TX3);
 
 // #define KP_POTMETER PA0
 // #define KD_POTMETER PA1
@@ -101,7 +101,7 @@ void serialComm();
 
 void setup() {
     Serial.begin(115200);
-    //Serial3.begin(115200);
+    Serial3.begin(115200);
 
     pinMode(LEFT_SENSOR, INPUT_PULLUP); 
     pinMode(RIGHT_SENSOR, INPUT_PULLUP); 
@@ -131,9 +131,9 @@ void setup() {
     // display.setTextColor(WHITE);
     // display.setFont(&FreeMono9pt7b);
 
-    // serialComm();
+    serialComm();
 
-    delay(4500);
+    delay(4000); //decreased the delay from 4500 to 4000 because we are now calling serialComm() above
     initialTime = millis();
 }
 
@@ -157,7 +157,7 @@ void loop() {
   //   currentMajorState = depositPlushie;
   // }
 
-  //Serial3.write(currentMajorState); //new
+  Serial3.write(currentMajorState); //new
 
   leftValue = digitalRead(LEFT_SENSOR);
   rightValue = digitalRead(RIGHT_SENSOR);
@@ -493,12 +493,12 @@ float speedCapOff(float speed) {
     return speed;
 }
 
-// void serialComm(){
-//     int check_available = Serial3.availableForWrite();
-//     while (!check_available)
-//         check_available = Serial3.availableForWrite();
-//     return;
-// }
+void serialComm(){
+    int check_available = Serial3.availableForWrite();
+    while (!check_available)
+        check_available = Serial3.availableForWrite();
+    return;
+}
 
 // void displayPID(){
 //   display.clearDisplay();
