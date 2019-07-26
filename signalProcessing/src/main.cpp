@@ -23,7 +23,7 @@ HardwareSerial Serial3 = HardwareSerial(RX3, TX3);
 #define RAMP_TIME 12
 #define COLLECT_TIME 24
 
-//enum majorState { upRamp, collectPlushie, depositPlushie, /*stones, shutDown*/ } currentMajorState;
+// enum majorState { upRamp, collectPlushie, depositPlushie, /*stones, shutDown*/ } currentMajorState;
 int currentMajorState;
 
 //based on the currentState we receive from the driving MCU, we will close/open the side doors, as well give instructions to the driving MCU when we need to change our path to avoid collision
@@ -33,63 +33,79 @@ int currentMajorState;
 //a bit like we will have "sub state machines" in plushie collection and deposit states, to both check the MCU state and check the ultrasonic sensor's output
 float initialTime;
 float timeElapsed;
+bool doorShutdown = false;
 
-void serialComm();
+void calibrateDoors();
+
 // void ultrasonicStateMachine_new();
 
 void setup() {
   Serial.begin(115200);
-  Serial3.begin(115200);
-  serialComm();
+  Serial3.begin(9600);
   //currentMajorState = upRamp;
-  //initialTime = millis();
+  // initialTime = millis();
 }
 
-void loop() {  
-  // ---- hard-coding the time like the slave MCU -----
+void loop() {
+  side_doors.doorsClose();
+}
+// void loop() {  // MASTER
+//   // timeElapsed = (millis() - initialTime)/1000; // in seconds
+//   // if (timeElapsed < RAMP_TIME)
+//   //   currentMajorState = upRamp;
+//   // else if (timeElapsed < COLLECT_TIME)
+//   //   currentMajorState = collectPlushie;
+//   // else {
+//   //     currentMajorState = depositPlushie;
+//   // }
 
-  // timeElapsed = (millis() - initialTime)/1000; // in seconds
-  // if (timeElapsed < RAMP_TIME)
-  //   currentMajorState = upRamp;
-  // else if (timeElapsed < COLLECT_TIME)
-  //   currentMajorState = collectPlushie;
-  // else {
-  //     currentMajorState = depositPlushie;
-  // }
+//   // while(!Serial3.available()) {}
+  
+//   currentMajorState = Serial3.read(); //get the state that the driving MCU is in
 
+//   switch (currentMajorState) {
+//     case 0: // upRamp
+//       Serial.println("upRamp");
+//       side_doors.doorsClose();
+//       break;
 
-  // ---- receiving the state from the slave MCU ----
-  currentMajorState = Serial3.read(); //get the state that the driver MCU is in
-  switch (currentMajorState) {
-    case 0: //up-ramp
-      side_doors.doorsClose();
-      break;
-
-    case 1: //collection
-      #if (ROLE == THANOS)
-        side_doors.doorsOpenT();
-      #elif (ROLE == METHANOS)
-        side_doors.doorsOpenM();
-      #endif
-      //after this position, we need the ultrasonic:
-      //ultrasonicStateMachine_new();
-      break;
+//     case 1: // plushieCollection
+//       #if (ROLE == THANOS)
+//         side_doors.doorsOpenT();
+//       #elif (ROLE == METHANOS)
+//         side_doors.doorsOpenM();
+//       #endif
+//       Serial.println("collect plush");
+//       //after this position, we need the ultrasonic:
+//       //ultrasonicStateMachine_new();
+//       break;
     
-    case 2: //deposit
-      side_doors.doorsTogether();
-      break;
+//     case 2: // plushieDeposit
+//       Serial.println("deposit plush");
+//       side_doors.doorsTogether();
+//       break;
 
-    case -1:
-      break; //if it reads -1, this means no data was available, so keep reading
-  }
-}
+//     case 3: //stones
+//       if (!doorShutdown) {
+//         doorShutdown = true;
+//         side_doors.rightDoorWrite(90);
+//         delay(500);
+//         side_doors.leftDoorWrite(90);
+//       }
+//       Serial.println("stones");
+//       side_doors.doorsClose();
+//       break;
 
-void serialComm(){
-      int check_available = Serial3.available();
-      while (!check_available)
-            check_available = Serial3.available(); 
-      return;      
-}
+//     case -1:
+//       break;
+
+//     default:
+//       Serial.print("default:");
+//       side_doors.doorsClose();
+//       Serial.println(currentMajorState);
+//       break;
+//   }
+// }
 
 /*
 void ultrasonicStateMachine(){
@@ -173,3 +189,14 @@ void ultrasonicStateMachine(){
       break;
   }
 }*/
+
+void calibrateDoors() {
+  side_doors.doorsClose();
+  delay(5000);
+  side_doors.doorsOpenM();
+  delay(5000);
+  side_doors.doorsTogether();
+  delay(5000);
+  side_doors.doorsOpenT();
+  delay(5000);  
+}

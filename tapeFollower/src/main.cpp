@@ -69,7 +69,7 @@ bool irDefined;
 float error = 0.0;
 int numberOfTurns = 0;
 
-enum majorState { upRamp, collectPlushie, depositPlushie, stones/*, shutDown*/ } currentMajorState;
+enum majorState { upRamp, collectPlushie, depositPlushie, stones/*, shutDown*/ } currentMajorState, previousMajorState;
 enum pidState { onTrack, leftOff, rightOff, turnLeft, turnRight, white, malfunc} currentPidState, previousPidState;
 enum irState { initialSpin, drivingFar, drivingClose, /*avoid,*/ stop} currentIrState;
 
@@ -94,14 +94,13 @@ void drive(float bwLeft, float fwLeft, float bwRight, float fwRight);
 void pidStateMachine();
 void irStateMachine();
 void irDrive(irState currentIrState);
-void serialComm();
 // void displayPID();
 // void displayRefl();
 // void displayIR();
 
 void setup() {
     Serial.begin(115200);
-    Serial3.begin(115200);
+    Serial3.begin(9600);
 
     pinMode(LEFT_SENSOR, INPUT_PULLUP); 
     pinMode(RIGHT_SENSOR, INPUT_PULLUP); 
@@ -121,6 +120,7 @@ void setup() {
     previousPidState = onTrack;
     currentIrState = initialSpin;
     currentMajorState = upRamp;
+    previousMajorState = stones; //this cannot be initialized as upRamp because in the first run we need it to be different than currentMajorState for it to be communicated
     irDefined = false;
 
     // kd_reading = p_i_d.kd; // Potentiometers
@@ -131,13 +131,10 @@ void setup() {
     // display.setTextColor(WHITE);
     // display.setFont(&FreeMono9pt7b);
 
-    serialComm();
-
-    delay(4000); //decreased the delay from 4500 to 4000 because we are now calling serialComm() above
     initialTime = millis();
 }
 
-void loop() {
+void loop() {  // SLAVE
   timeElapsed = (millis() - initialTime)/1000; // in seconds
 
   if (timeElapsed < RAMP_TIME)
@@ -152,23 +149,17 @@ void loop() {
       currentMajorState = depositPlushie;
     }
   }
-  // if (irDefined == false) {
-  //   irDefined = true;
-  //   currentMajorState = depositPlushie;
-  // }
 
-  Serial3.write(currentMajorState); //new
+  if (currentMajorState != previousMajorState) {
+    while (!Serial3.availableForWrite()) {}
+    Serial3.write((int)currentMajorState); 
+  }
+
 
   leftValue = digitalRead(LEFT_SENSOR);
   rightValue = digitalRead(RIGHT_SENSOR);
   farLeftValue = digitalRead(FAR_LEFT);
   farRightValue = digitalRead(FAR_RIGHT);
-  // Serial.print((int)farLeftValue);
-  // Serial.print((int)leftValue);
-  // Serial.print((int)rightValue);
-  // Serial.println((int)farRightValue);
-  // drive(0, targetSpeed, 0, targetSpeed);
-  // delay(700);
 
   switch ( currentMajorState ) { // state machine
     case upRamp:
@@ -189,6 +180,7 @@ void loop() {
       drive(0, 0, 0, 0);
       break;
   }
+  previousMajorState = currentMajorState;
 }
  
 
@@ -301,10 +293,7 @@ void pidStateMachine() {
         leftSpeed = targetSpeed + p_i_d.output_pid(error);
         rightSpeed = targetSpeed + p_i_d.output_pid(-error);
         drive(0, leftSpeed, 0, rightSpeed);  
-      } else {
-        drive(0, 0, 0, 0); // do nothing
-        delay(2000); //if it stops this means it went from both on, to both off....
-      }
+      } 
       // Serial.println(error);
       // Serial.println(leftSpeed);
       // Serial.println(rightSpeed);
@@ -450,10 +439,10 @@ void drive(float bwLeft, float fwLeft, float bwRight, float fwRight) { // DO NOT
   bwLeft = speedCapOff(bwLeft);
   bwRight = speedCapOff(bwRight);
 
-  pwm_start(LEFT_MOTOR_BW, clockFreq, period, bwLeft, 0); 
-  pwm_start(LEFT_MOTOR_FW, clockFreq, period, fwLeft, 0); 
-  pwm_start(RIGHT_MOTOR_BW, clockFreq, period, bwRight, 0); 
-  pwm_start(RIGHT_MOTOR_FW, clockFreq, period, fwRight, 0); 
+  // pwm_start(LEFT_MOTOR_BW, clockFreq, period, bwLeft, 0); 
+  // pwm_start(LEFT_MOTOR_FW, clockFreq, period, fwLeft, 0); 
+  // pwm_start(RIGHT_MOTOR_BW, clockFreq, period, bwRight, 0); 
+  // pwm_start(RIGHT_MOTOR_FW, clockFreq, period, fwRight, 0); 
 }
 
 //modular
@@ -491,13 +480,6 @@ float speedCapOff(float speed) {
     return 12*period/100;
   else
     return speed;
-}
-
-void serialComm(){
-    int check_available = Serial3.availableForWrite();
-    while (!check_available)
-        check_available = Serial3.availableForWrite();
-    return;
 }
 
 // void displayPID(){
