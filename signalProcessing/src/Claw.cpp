@@ -25,7 +25,7 @@ void Claw::getStone(){
 
     //if claw touch sensor does not read high (we haven't touched the pillar), keep moving forward -- send info to the drive MCU
     while(touch_sensors.getClawTouch() == LOW){
-        Serial3.print("move forward");
+        Serial3.print("move forward"); //claw should RECEIVE from slave!!!
     }
 
     //as soon as claw touch sensor reads high, send info to the drive MCU to stop the wheels
