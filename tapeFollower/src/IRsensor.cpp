@@ -14,6 +14,7 @@ IRsensor::IRsensor(int set_pin, int set_mode){
     pinMode(pin, INPUT);
 
     sample_size = SIZE; // the amount of values to collect into array for reading
+    correlation = 0;
 
     mode = set_mode;
     if (mode == 1){
@@ -56,8 +57,7 @@ void IRsensor::corr(){
     for (int i = 0; i < (2*sample_size); i++){
         waveform[i] = sin(2*PI*pow(10,power)*i*time_per_sample);
     }
-    // compare sample array to the generated array
-    // correlation = IRsamples*waveform
+    // compare sample array to the generated array , correlation = IRsamples*waveform
     float corr_values[sample_size] = {};
     for (int m = 0; m < (sample_size); m++){
         for (int n = 0; n < (sample_size); n++){
@@ -72,6 +72,9 @@ void IRsensor::corr(){
             highest_val = x;
         }
     }
+
+    correlation = highest_val;
+}
 
     // Serial.println("raw:");
     // for (int i = 0; i < 10; i++){
@@ -88,9 +91,7 @@ void IRsensor::corr(){
     //     Serial.println(corr_values[i]);
     // }
 
-    correlation = highest_val;
 
     // for (int i = 0; i < (2*sample_size); i++){
     //     correlation += corr_values[i];
     // }
-}

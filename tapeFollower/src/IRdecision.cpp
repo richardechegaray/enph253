@@ -23,14 +23,15 @@ int IRdecision::strongest_signal(){
     corrcenter = center.correlation/5;
     corrright = 4*right.correlation/3;
 
-    if ((corrleft > corrcenter) && (corrleft > corrright)){
+    if ((corrleft >= corrcenter) && (corrleft >= corrright)){
         return pinleft;
     }
-    else if ((corrcenter > corrleft) && (corrcenter > corrright)){
-        return pincenter;
-    }
-    else if ((corrright > corrleft) && (corrright > corrcenter)){
+    else if ((corrright >= corrleft) && (corrright >= corrcenter)){
         return pinright;
     }
+    else if ((corrcenter >= corrleft) && (corrcenter >= corrright)){
+        return pincenter;
+    }
+   
     else return -1;
 };
