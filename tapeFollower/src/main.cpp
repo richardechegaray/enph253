@@ -35,6 +35,10 @@ HardwareSerial Serial3 = HardwareSerial(RX3, TX3);
 #define RAMP_TIME 15
 #define COLLECT_TIME 27
 
+// #define COM_PLUSH_COLLECT_TIME 8
+// #define COM_PLUSH_DEPOSIT_TIME 26
+// #define COM_STONES 40
+
 // #define KP_POTMETER PA0
 // #define KD_POTMETER PA1
 
@@ -60,16 +64,18 @@ float closeThreshold = 1550;  //quite close
 float midIntensity = -1;
 int highestPin = -1;
 
-float leftValue = 0.0;
-float rightValue = 0.0;
-float farLeftValue = 0.0;
-float farRightValue = 0.0;
+int leftValue = 0;
+int rightValue = 0;
+int farLeftValue = 0;
+int farRightValue = 0;
+bool stonePart;
 bool irDefined;
 
 float error = 0.0;
-int numberOfTurns = 0;
+int numberOfTurns;
 
-enum majorState { upRamp, collectPlushie, depositPlushie, stones/*, shutDown*/ } currentMajorState, previousMajorState;
+enum majorState { upRamp, collectPlushie, depositPlushie, stones, shutDown } ;
+majorState currentMajorState, previousMajorState;
 enum pidState { onTrack, leftOff, rightOff, turnLeft, turnRight, white, malfunc} currentPidState, previousPidState;
 enum irState { initialSpin, drivingFar, drivingClose, /*avoid,*/ stop} currentIrState;
 
@@ -117,12 +123,13 @@ void setup() {
     pwm_start(RIGHT_MOTOR_FW, clockFreq, period, 0, 1); 
     pwm_start(RIGHT_MOTOR_BW, clockFreq, period, 0, 1); 
     p_i_d = pid();
+    numberOfTurns = 0;
     previousPidState = onTrack;
     currentIrState = initialSpin;
     currentMajorState = upRamp;
-    previousMajorState = stones; //this cannot be initialized as upRamp because in the first run we need it to be different than currentMajorState for it to be communicated
+    previousMajorState = shutDown; //this cannot be initialized as upRamp because in the first run we need it to be different than currentMajorState for it to be communicated
     irDefined = false;
-
+    stonePart = false;
     // kd_reading = p_i_d.kd; // Potentiometers
     // kp_reading = p_i_d.kp;
 
@@ -134,6 +141,28 @@ void setup() {
     initialTime = millis();
 }
 
+// void loop() {
+//   // leftValue = digitalRead(LEFT_SENSOR);
+//   // rightValue = digitalRead(RIGHT_SENSOR);
+//   // farLeftValue = digitalRead(FAR_LEFT);
+//   // farRightValue = digitalRead(FAR_RIGHT);
+//   int leftMost = digitalRead(PA11);
+//   int mid = digitalRead(PA12);
+//   int rightMost = digitalRead(PA15);
+
+//   // Serial.print((int)farLeftValue);
+//   // Serial.print((int)leftValue);
+//   // Serial.print((int)rightValue);
+//   // Serial.println((int)farRightValue);
+
+//   Serial.print(leftMost);
+//   Serial.print(mid);
+//   Serial.println(rightMost);
+
+//   delay(750);
+
+// }
+
 void loop() {  // SLAVE
   timeElapsed = (millis() - initialTime)/1000; // in seconds
 
@@ -141,20 +170,79 @@ void loop() {  // SLAVE
     currentMajorState = upRamp;
   else if (timeElapsed < COLLECT_TIME)
     currentMajorState = collectPlushie;
-  else if (currentIrState == stop)
+  else if (stonePart == true)
     currentMajorState = stones;
-  else {
-    if (irDefined == false) {
-      irDefined = true;
-      currentMajorState = depositPlushie;
+  else 
+    currentMajorState = depositPlushie;
+
+  //  if (timeElapsed < 3)//RAMP_TIME)
+  //   //data = 0;
+  //    currentMajorState = upRamp;
+  // else if (timeElapsed < 6)//COLLECT_TIME)
+  //   //  data = 1;
+  //   currentMajorState = collectPlushie;//collectPlushie;
+  // else if (timeElapsed < 9)
+  //   //  data = 2;
+  //   currentMajorState = depositPlushie;
+  // else 
+  //   //  data = 3;
+  //  currentMajorState = stones;
+  
+  if ((numberOfTurns > 0) && (currentMajorState == upRamp)){
+    Serial.println(collectPlushie);
+    Serial3.write(collectPlushie);
+  } else {
+    Serial.println((int)currentMajorState);
+    Serial3.write((int)currentMajorState);
+  }
+
+  // if (numberOfTurns == 1){                 //NEWEST ONE
+  //   Serial3.write((int)collectPlushie);
+  // } else if(currentMajorState != previousMajorState){
+  //   if (currentMajorState == depositPlushie) {
+  //     // while (!(Serial3.available())) {
+  //     //   drive(0,0,0,0); //before spin
+  //     //   Serial3.flush();
+  //     // }
+  //     drive(0,0,0,0);
+  //     Serial3.flush(); //might have to comment
+  //     Serial3.write((int)depositPlushie); 
+  //   } 
+  //   Serial3.write((int)currentMajorState); 
+  // }
+
+  // if (numberOfTurns == 1) {
+  //   Serial3.write((int)collectPlushie);
+  // } else if (currentMajorState != previousMajorState) {
+  //   if (currentMajorState == depositPlushie) {
+  //     drive(0,0,0,0);
+  //     delay(2000);
+  //   }
+  //   Serial3.flush();
+  //   Serial3.write((int)currentMajorState);
+  // }
+
+  // if (timeElapsed < COM_PLUSH_COLLECT_TIME)
+  //   Serial3.write((int)upRamp); 
+  // else if (timeElapsed < COM_PLUSH_DEPOSIT_TIME)
+  //   Serial3.write((int)collectPlushie); 
+  // else if (timeElapsed < COM_STONES)
+  //   Serial3.write((int)depositPlushie); 
+  // else 
+  //   Serial3.write((int)stones); 
+  
+
+  /*if (numberOfTurns == 1){     //magic
+    Serial3.write((int)collectPlushie);
+  } else if(currentMajorState == depositPlushie){
+    if (butterfly == false) {
+      butterfly = true;
+      drive(0,0,0,0);
     }
-  }
-
-  if (currentMajorState != previousMajorState) {
-    while (!Serial3.availableForWrite()) {}
     Serial3.write((int)currentMajorState); 
-  }
-
+  } else {
+      Serial3.write((int)currentMajorState); 
+  }*/
 
   leftValue = digitalRead(LEFT_SENSOR);
   rightValue = digitalRead(RIGHT_SENSOR);
@@ -192,28 +280,32 @@ pidState getPidState(float left, float right, float farLeft, float farRight){
       if (currentMajorState == upRamp) { //if its 0 or 1
         numberOfTurns++;
         if (numberOfTurns == 1)  //first turn
-          delay(400); //up ramp delay
+          delay(450); //up ramp delay
         return turnLeft;
       }
     }
 
     if ( currentMajorState == collectPlushie ) {
-      if (farRight == ON)
+      if (farRight == ON) {
+        numberOfTurns++;
         return turnRight; 
+      }
     }
   #elif (ROLE == METHANOS) 
     if (farRight == ON) {
       if (currentMajorState == upRamp) { //if its 0 or 1 //got rid of number of turns <2
         numberOfTurns++;
         if (numberOfTurns == 1)  //first turn
-          delay(400); //up ramp delay, used to be 300
+          delay(450); //up ramp delay,  400 at 60 pwm speed, 300 at 50 pwm
         return turnRight;
       }
     }
 
     if ( currentMajorState == collectPlushie ) {
-      if (farLeft == ON)
+      if (farLeft == ON) {
+        numberOfTurns++;
         return turnLeft; 
+      }
     }
   #endif
 
@@ -377,9 +469,15 @@ void irStateMachine() {
   delay(1000);*/
   switch ( currentIrState ) { //state machine
     case initialSpin : //drive straight
-      highestPin = decision.strongest_signal();
+      highestPin = decision.strongest_signal();  
       midIntensity = decision.corrcenter;
-      drive(0, spinSpeed, spinSpeed, 0); // spin CW if methanos
+      // drive(0,0,0,0);
+      // delay(3000); //help door stop without forces
+      #if (ROLE == THANOS)
+        drive(0, spinSpeed, spinSpeed, 0); // spin CW
+      #elif (ROLE == METHANOS)
+        drive(spinSpeed, 0, 0, spinSpeed); // spin CCW 
+      #endif
       
       if ((highestPin == MID_IR) && (midIntensity > irStartThreshold)) {
         drive(0,0,0,0);
@@ -414,6 +512,7 @@ void irStateMachine() {
     
     case stop :
       drive(0,0,0,0);
+      stonePart = true;
       delay(500);
       // currentMajorState = stones;
       // displayIR();
@@ -439,10 +538,10 @@ void drive(float bwLeft, float fwLeft, float bwRight, float fwRight) { // DO NOT
   bwLeft = speedCapOff(bwLeft);
   bwRight = speedCapOff(bwRight);
 
-  // pwm_start(LEFT_MOTOR_BW, clockFreq, period, bwLeft, 0); 
-  // pwm_start(LEFT_MOTOR_FW, clockFreq, period, fwLeft, 0); 
-  // pwm_start(RIGHT_MOTOR_BW, clockFreq, period, bwRight, 0); 
-  // pwm_start(RIGHT_MOTOR_FW, clockFreq, period, fwRight, 0); 
+  pwm_start(LEFT_MOTOR_BW, clockFreq, period, bwLeft, 0); 
+  pwm_start(LEFT_MOTOR_FW, clockFreq, period, fwLeft, 0); 
+  pwm_start(RIGHT_MOTOR_BW, clockFreq, period, bwRight, 0); 
+  pwm_start(RIGHT_MOTOR_FW, clockFreq, period, fwRight, 0); 
 }
 
 //modular
