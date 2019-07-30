@@ -11,6 +11,7 @@ ultrasonic::location loc;
 #define LEFT_DOOR_SERVO PB13
 #define RIGHT_DOOR_SERVO PB12
 SideDoors side_doors = SideDoors(LEFT_DOOR_SERVO, RIGHT_DOOR_SERVO);
+enum doorStates{doorsClosed, doorsOpen, doorsTogether} currentDoorState;
 
 #define TX3 PB10
 #define RX3 PB11
@@ -18,26 +19,13 @@ HardwareSerial Serial3 = HardwareSerial(RX3, TX3);
 
 #define THANOS 0
 #define METHANOS 1
-#define ROLE THANOS
+#define ROLE METHANOS
 
 #define COM_PLUSH_COLLECT_TIME 8
 #define COM_PLUSH_DEPOSIT_TIME 26
-//#define COM_STONES 40
 
 int currentMajorState;
-
-//based on the currentState we receive from the driving MCU, we will close/open the side doors, as well give instructions to the driving MCU when we need to change our path to avoid collision
-//switch case for the state we receive from the driving MCU
-//check the state sent from the driving MCU with a timer interrupt? or at the beginning of each loop?
-//we need to also check what the ultrasonic sensor is "seeing"
-//a bit like we will have "sub state machines" in plushie collection and deposit states, to both check the MCU state and check the ultrasonic sensor's output
-// float initialTime;
-// float timeElapsed;
-bool doorShutdown = false;
-
 void calibrateDoors();
-
-//int range = 45;
 void ultrasonicStateMachine();
 float initialTime;
 float timeElapsed;
@@ -45,9 +33,7 @@ float timeElapsed;
 void setup() {
   Serial.begin(115200);
   Serial3.begin(9600);
-  initialTime = millis();
-  //Serial3.flush();
-  // initialTime = millis();
+  currentDoorState = doorsOpen;
 }
 
 // void loop() {
@@ -74,87 +60,98 @@ void setup() {
 }*/
 
 //with communication:
-/*void loop() {  // MASTER
+void loop() {  // MASTER
 
-  if (Serial3.available())
-    currentMajorState = Serial3.read(); //get the state that the driving MCU is in
-
-  switch (currentMajorState) {
+  currentMajorState = Serial3.read();
+    
+   switch (currentMajorState) {
     case 0: // upRamp
       Serial.println("upRamp");
-      side_doors.doorsClose();
+      if(currentDoorState!=doorsClosed){
+        side_doors.doorsClose();
+        currentDoorState = doorsClosed;
+      }
+      
       break;
 
     case 1: // plushieCollection
       #if (ROLE == THANOS)
-        side_doors.doorsOpenT();
+        if(currentDoorState!=doorsOpen){
+          side_doors.doorsOpenT();
+          currentDoorState = doorsOpen;
+        } 
       #elif (ROLE == METHANOS)
-        side_doors.doorsOpenM();
+        if(currentDoorState!=doorsOpen){
+          side_doors.doorsOpenM();
+          currentDoorState = doorsOpen;
+        }
       #endif
-      Serial.println("collect plush");
-      //after this position, we need the ultrasonic:
+      Serial.println("collect");
       //ultrasonicStateMachine_new();
       break;
     
     case 2: // plushieDeposit
-      Serial.println("deposit plush");
-      side_doors.doorsTogether();
+      Serial.println("deposit");
+      if(currentDoorState!=doorsTogether){
+          side_doors.doorsTogether();
+          currentDoorState = doorsTogether;
+        }
+      
       break;
 
     case 3: //stones
-      if (!doorShutdown) {
-        doorShutdown = true;
-        side_doors.rightDoorWrite(90);
-        delay(500);
-        side_doors.leftDoorWrite(90);
-      }
       Serial.println("stones");
-      side_doors.doorsClose();
+      if(currentDoorState!=doorsClosed){
+        side_doors.doorsWrite(90);
+        delay(500);
+        side_doors.doorsClose();
+        currentDoorState = doorsClosed;
+      }
       break;
 
     case -1:
       break; 
 
     default:
-      Serial.print("default:");
-      side_doors.doorsClose();
-      Serial.println(currentMajorState);
       break;
   }
-}*/
-
-void loop(){
-    ultrasonicStateMachine();
-    /*loc = ultra.loc_of_obj(range);
-    Serial.print(ultra.zero);
-    Serial.print(ultra.one);
-    Serial.print(ultra.two);
-    Serial.print(ultra.three);
-    Serial.print(ultra.four);
-    Serial.print(ultra.five);
-    Serial.println(ultra.six);
-
-    Serial.print("distance of left most pin: ");
-    Serial.println(ultra.distance_zero);
-
-    Serial.print("Object at location: "); 
-    if (loc == 0)
-        Serial.println("left"); 
-    else if (loc == 1) 
-        Serial.println("left and center"); 
-    else if (loc == 2)
-        Serial.println("center"); 
-    else if (loc == 3)
-        Serial.println("center and right"); 
-    else if (loc == 4)
-        Serial.println("right"); 
-    else if (loc == 5)
-        Serial.println("left and right"); 
-    else if (loc == 6)
-        Serial.println("all"); 
-    else if (loc == 7)
-        Serial.println("no object detected");*/
 }
+
+/*void loop(){
+    distance = ultra.get_distance();
+    Serial.println(distance);
+    delay(200);
+    //ultrasonicStateMachine();
+    // loc = ultra.loc_of_obj(range);
+    // Serial.print(ultra.zero);
+    // Serial.print(ultra.one);
+    // Serial.print(ultra.two);
+    // Serial.print(ultra.three);
+    // Serial.print(ultra.four);
+    // Serial.print(ultra.five);
+    // Serial.println(ultra.six);
+
+    // Serial.print("distance of left most pin: ");
+    // Serial.println(ultra.distance_zero);
+
+    // Serial.print("Object at location: "); 
+    // if (loc == 0)
+    //     Serial.println("left"); 
+    // else if (loc == 1) 
+    //     Serial.println("left and center"); 
+    // else if (loc == 2)
+    //     Serial.println("center"); 
+    // else if (loc == 3)
+    //     Serial.println("center and right"); 
+    // else if (loc == 4)
+    //     Serial.println("right"); 
+    // else if (loc == 5)
+    //     Serial.println("left and right"); 
+    // else if (loc == 6)
+    //     Serial.println("all"); 
+    // else if (loc == 7)
+    //     Serial.println("no object detected");
+}*/
 
 
 void ultrasonicStateMachine(){
