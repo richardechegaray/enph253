@@ -12,8 +12,9 @@ echo(pin_echo)
     pinMode(trig, OUTPUT); 
     pinMode(echo, INPUT);
     myservo.attach(SERVO_PIN);
-    center_angle = servo_center(RANGE);
-    myservo.write(center_angle);
+    //center_angle = servo_center(RANGE);
+    //myservo.write(center_angle);
+    myservo.write(90);
     delay(500);
 }
 
@@ -46,7 +47,7 @@ bool ultrasonic::is_there_obj(int range){
     }
 }
 
-/*enum ultrasonic::location ultrasonic::loc_of_obj(int range){
+enum ultrasonic::location ultrasonic::loc_of_obj(int range){
                          //left ---------->     right
     int angle_range [] = {150, 130, 110, 90, 70, 50, 30};
     int obj_detected [] = {0, 0, 0, 0, 0, 0, 0};
@@ -66,13 +67,13 @@ bool ultrasonic::is_there_obj(int range){
 
     
 
-    // zero = obj_detected[0];
-    // one = obj_detected[1];
-    // two = obj_detected[2];
-    // three = obj_detected[3];
-    // four = obj_detected[4];
-    // five = obj_detected[5];
-    // six = obj_detected[6];
+    zero = obj_detected[0];
+    one = obj_detected[1];
+    two = obj_detected[2];
+    three = obj_detected[3];
+    four = obj_detected[4];
+    five = obj_detected[5];
+    six = obj_detected[6];
 
     if (obj_detected[0] || obj_detected[1]){
         loc = left;
@@ -100,9 +101,9 @@ bool ultrasonic::is_there_obj(int range){
     }
 
     return loc;
-}*/
+}
 
-
+/*
 enum ultrasonic::points ultrasonic::checkLocation(int range){
     int angle_range [] = {150, 130, 110, 90, 70, 50, 30};
     int obj_detected [] = {0, 0, 0, 0, 0, 0, 0};
@@ -158,7 +159,7 @@ enum ultrasonic::points ultrasonic::checkLocation(int range){
         }
     }
     return lr0;
-}
+}*/
 
 int ultrasonic::servo_center(int range){
     int angle_range [] = {150, 140, 130, 120, 110, 100, 90, 80, 70, 60, 50, 40, 30};
