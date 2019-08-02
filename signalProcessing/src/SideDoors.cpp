@@ -13,8 +13,6 @@ SideDoors::SideDoors(int leftDoorServo, int rightDoorServo):
 }
 
 void SideDoors::leftDoorWrite(int angle){
-  //if right is open more, close left
-  //if right is closed more, 
     left_door_servo.write(180-angle);
 }
 
@@ -27,9 +25,6 @@ void SideDoors::doorsWrite(int angle){
     delay(500);
     left_door_servo.write(180-angle);
 }
-
-//check the angle of the opposite door before open/close
-//plushie coll vs plushie deposit(without the doors)
 
 void SideDoors::doorsClose(){ // close left first
   left_door_servo.write(180-0);
@@ -46,13 +41,13 @@ void SideDoors::doorsTogether(){ // close left first
 //for collecting, 110 and 150 
 void SideDoors::doorsOpenT(){ // left door smaller
   right_door_servo.write(150);
-  delay(500);
-  left_door_servo.write(180-45); //85 degrees
+  delay(200);
+  left_door_servo.write(180-90); //85 degrees
 }
 
 void SideDoors::doorsOpenM(){ // right door smaller
-  right_door_servo.write(45);
-  delay(500);
+  right_door_servo.write(90);
+  delay(200);
   left_door_servo.write(180-150); //150 degrees
 }
 

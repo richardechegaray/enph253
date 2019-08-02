@@ -20,9 +20,6 @@ HardwareSerial Serial3 = HardwareSerial(RX3, TX3);
 #define METHANOS 1
 #define ROLE THANOS
 
-#define COM_PLUSH_COLLECT_TIME 8
-#define COM_PLUSH_DEPOSIT_TIME 26
-
 int currentMajorState;
 void calibrateDoors();
 void ultrasonicStateMachine();
@@ -31,37 +28,21 @@ void setup() {
   Serial.begin(115200);
   Serial3.begin(9600);
   currentDoorState = doorsClosed;
+  #if (ROLE == THANOS)
+  // if(currentDoorState!=doorsOpen){
+    side_doors.doorsOpenT();
+    // currentDoorState = doorsOpen;
+  //} 
+  #elif (ROLE == METHANOS)
+    // if(currentDoorState!=doorsOpen){
+      side_doors.doorsOpenM();
+      // currentDoorState = doorsOpen;
+    //}
+  #endif
 }
 
-//without communication:
-/*void loop(){
-  timeElapsed = (millis() - initialTime)/1000; // in seconds
-  if (timeElapsed < COM_PLUSH_COLLECT_TIME)
-    side_doors.doorsClose();
-  else if (timeElapsed < COM_PLUSH_DEPOSIT_TIME){
-    #if (ROLE == THANOS)
-      side_doors.doorsOpenT();
-    #elif (ROLE == METHANOS)
-      side_doors.doorsOpenM();
-    #endif
-  }   
-  // else if (timeElapsed < COM_STONES)
-  //   side_doors.doorsTogether(); 
-  else 
-     side_doors.doorsTogether();
-}*/
-
-//with communication:
 void loop() {  // MASTER
-  // char role = Serial3.read();
-  // if (role == 'm'){
-  //   #define ROLE METHANOS
-  // } else if (role == 't'){
-  //   #define ROLE THANOS  
-  // } else{
-
-  // }
-  currentMajorState = Serial3.read();
+  /*currentMajorState = Serial3.read();
     
    switch (currentMajorState) {
     case 0: // upRamp
@@ -84,7 +65,7 @@ void loop() {  // MASTER
           currentDoorState = doorsOpen;
         }
       #endif
-      //ultrasonicStateMachine();
+      ultrasonicStateMachine();
       break;
     
     case 2: // plushieDeposit
@@ -109,7 +90,8 @@ void loop() {  // MASTER
 
     default:
       break;
-   }
+   }*/
+    ultrasonicStateMachine();
 }
 
 /*void loop(){
@@ -153,10 +135,24 @@ void ultrasonicStateMachine(){
       loc = ultra.loc_of_obj(RANGE);
       switch(loc){
         case ultrasonic::left:
-          side_doors.leftDoorWrite(0); //close more than the Methanos angle, to see the change
+          side_doors.leftDoorWrite(55); //close less than the left_center case
           break;
         case ultrasonic::left_center:
-          side_doors.leftDoorWrite(0); //close more than the Methanos angle, to see the change
+          side_doors.leftDoorWrite(0); 
+          break;
+        default:
+        #if (ROLE == THANOS)
+         // if(currentDoorState!=doorsOpen){
+            //side_doors.doorsOpenT();
+            side_doors.leftDoorWrite(90);
+           // currentDoorState = doorsOpen;
+          //} 
+          #elif (ROLE == METHANOS)
+           // if(currentDoorState!=doorsOpen){
+              side_doors.rightDoorWrite(90);
+             // currentDoorState = doorsOpen;
+            //}
+          #endif
           break;
       }
       /*switch(loc){
