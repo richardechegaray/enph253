@@ -332,7 +332,7 @@ void pidStateMachine() {
     break;
 
   case offOnOn : //turn right
-    error = 2; 
+    error = 2; //2
     leftSpeed = targetSpeed + p_i_d.output_pid(error);
     rightSpeed = targetSpeed + p_i_d.output_pid(-error);
     // Serial.println(error);
@@ -343,7 +343,7 @@ void pidStateMachine() {
     break;
 
   case onOnOff : //turn left
-    error = 2; 
+    error = 1; //2
     leftSpeed = targetSpeed + p_i_d.output_pid(-error);
     rightSpeed = targetSpeed + p_i_d.output_pid(error);
     // Serial.println(error);
@@ -354,7 +354,7 @@ void pidStateMachine() {
     break;
 
   case offOffOn : //turn right
-    error = 4; 
+    error = 3; 
     leftSpeed = targetSpeed + p_i_d.output_pid(error);
     rightSpeed = targetSpeed + p_i_d.output_pid(-error);
     // Serial.println(error);
@@ -365,7 +365,7 @@ void pidStateMachine() {
     break;
 
   case onOffOff : //turn left
-    error = 4; 
+    error = 3; 
     leftSpeed = targetSpeed + p_i_d.output_pid(-error);
     rightSpeed = targetSpeed + p_i_d.output_pid(error);
     // Serial.println(error);
