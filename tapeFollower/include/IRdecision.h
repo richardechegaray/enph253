@@ -8,6 +8,7 @@ class IRdecision{
         int pinleft, pincenter, pinright;
     public:
         IRdecision(int, int, int, int);
+        void setMode(int set_mode);
 
         float corrleft, corrcenter, corrright;
         int max_pin;

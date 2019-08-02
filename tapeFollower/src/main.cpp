@@ -5,16 +5,19 @@
 #include <Arduino.h>
 #include <pid.h>
 #include "IRdecision.h" 
-// #include <Wire.h>
-// #include <Adafruit_SSD1306.h>
-// #include <FreeMono9pt7b.h>
-// #define OLED_RESET -1 //for reset button
-// Adafruit_SSD1306 display(OLED_RESET);
+#include <Wire.h>
+#include <Adafruit_SSD1306.h>
+#include <FreeMono9pt7b.h>
+#define OLED_RESET -1 //for reset button
+Adafruit_SSD1306 display(OLED_RESET);
 
 #define FAR_LEFT PB12
-#define LEFT_SENSOR PB13  
-#define RIGHT_SENSOR PB14
-#define FAR_RIGHT PB15
+#define STONE_LEFT PB13
+#define LEFT_MID PB14
+#define MID_MID PB15
+#define RIGHT_MID PA15
+#define STONE_RIGHT PA12
+#define FAR_RIGHT PA11
 
 #define LEFT_MOTOR_FW PA_3 
 #define LEFT_MOTOR_BW PA_2
@@ -32,15 +35,18 @@
 #define RX3 PB11
 HardwareSerial Serial3 = HardwareSerial(RX3, TX3);
 
+#define KP_METER PA5
+#define KD_METER PA4
+#define KP_KD_BUTTON PB8
+//first switch b4, SWIRCH 2 = b5
+#define MODE_SWITCH PB5
+
 #define RAMP_TIME 15
-#define COLLECT_TIME 27
+#define COLLECT_TIME 29
 
 // #define COM_PLUSH_COLLECT_TIME 8
 // #define COM_PLUSH_DEPOSIT_TIME 26
 // #define COM_STONES 40
-
-// #define KP_POTMETER PA0
-// #define KD_POTMETER PA1
 
 float clockFreq = 100000;
 float period = 1000;
@@ -49,9 +55,9 @@ float initialTime;
 float timeElapsed;
 
 float spinSpeed = 22*period/100; //make sure this isnt too fast, 20 is too slow
-float targetIrSpeed = 25*period/100;
-float targetIrSpeedPlus = 30*period/100;
-float targetIrSpeedMinus = 20*period/100;
+float targetIrSpeed = 22*period/100;  //25
+float targetIrSpeedPlus = 27*period/100;  //30
+float targetIrSpeedMinus = 17*period/100;  //20
 
 float targetSpeed = 60*period/100;
 float leftSpeed = targetSpeed;
@@ -64,54 +70,59 @@ float closeThreshold = 1550;  //quite close
 float midIntensity = -1;
 int highestPin = -1;
 
-int leftValue = 0;
-int rightValue = 0;
-int farLeftValue = 0;
-int farRightValue = 0;
+int farLeftVal = 0;
+int stoneLeftVal = 0;
+int leftMidVal = 0;
+int midMidVal = 0;
+int rightMidVal = 0;
+int stoneRightVal = 0;
+int farRightVal = 0;
+
 bool stonePart;
-bool irDefined;
+// bool irDefined;
 
 float error = 0.0;
 int numberOfTurns;
 
 enum majorState { upRamp, collectPlushie, depositPlushie, stones, shutDown } ;
+enum pidState { onTape, offOnOn, offOffOn, onOnOff, onOffOff, white, turnLeft, turnRight, stoneOnRight, stoneOnLeft } ;
+enum irState { initialSpin, drivingFar, drivingClose, /*avoid,*/ stop} ;
+
 majorState currentMajorState, previousMajorState;
-enum pidState { onTrack, leftOff, rightOff, turnLeft, turnRight, white, malfunc} currentPidState, previousPidState;
-enum irState { initialSpin, drivingFar, drivingClose, /*avoid,*/ stop} currentIrState;
+irState currentIrState;
+pidState  currentPidState, previousPidState;
 
 pid p_i_d;
-// float kp_reading;
-// float kd_reading;
 
+int role;
 #define THANOS 0
 #define METHANOS 1
-#define ROLE METHANOS
 
-#if (ROLE == THANOS)
-  IRdecision decision = IRdecision(LEFT_IR, MID_IR, RIGHT_IR, 10); //10 kHz
-#elif (ROLE == METHANOS)
-  IRdecision decision = IRdecision(LEFT_IR, MID_IR, RIGHT_IR, 1); //1 kHz
-#endif
-
+IRdecision decision = IRdecision(LEFT_IR, MID_IR, RIGHT_IR, 1); // default is 1kHz but we set this to the correct value in setup
 
 float speedCapOff(float speed); //add for all functions
-pidState getPidState(float left, float right, float farLeft, float farRight);
+pidState getPidState(int farLeft, int stoneLeft, int leftMid, int midMid, int rightMid, int stoneRight, int farRight);
 void drive(float bwLeft, float fwLeft, float bwRight, float fwRight);
 void pidStateMachine();
 void irStateMachine();
 void irDrive(irState currentIrState);
-// void displayPID();
-// void displayRefl();
-// void displayIR();
+void updatePotVal();
+void updateDisplay();
 
 void setup() {
     Serial.begin(115200);
     Serial3.begin(9600);
 
-    pinMode(LEFT_SENSOR, INPUT_PULLUP); 
-    pinMode(RIGHT_SENSOR, INPUT_PULLUP); 
-    pinMode(FAR_LEFT, INPUT_PULLUP);
+    pinMode(FAR_LEFT, INPUT_PULLUP); 
+    pinMode(STONE_LEFT, INPUT_PULLUP); 
+    pinMode(LEFT_MID, INPUT_PULLUP);
+    pinMode(MID_MID, INPUT_PULLUP);
+    pinMode(RIGHT_MID, INPUT_PULLUP); 
+    pinMode(STONE_RIGHT, INPUT_PULLUP);
     pinMode(FAR_RIGHT, INPUT_PULLUP);
+
+    pinMode(KP_KD_BUTTON, INPUT_PULLUP);
+    // attachInterrupt(digitalPinToInterrupt(KP_KD_BUTTON), updatePotVal, CHANGE);
         
     pinMode(LEFT_MOTOR_FW, OUTPUT);
     pinMode(LEFT_MOTOR_BW, OUTPUT);
@@ -124,46 +135,83 @@ void setup() {
     pwm_start(RIGHT_MOTOR_BW, clockFreq, period, 0, 1); 
     p_i_d = pid();
     numberOfTurns = 0;
-    previousPidState = onTrack;
+    previousPidState = onTape;
     currentIrState = initialSpin;
     currentMajorState = upRamp;
     previousMajorState = shutDown; //this cannot be initialized as upRamp because in the first run we need it to be different than currentMajorState for it to be communicated
-    irDefined = false;
+    // irDefined = false;
     stonePart = false;
-    // kd_reading = p_i_d.kd; // Potentiometers
-    // kp_reading = p_i_d.kp;
 
-    // display.begin(SSD1306_SWITCHCAPVCC, 0x3C); // OLED Display
-    // display.clearDisplay();
-    // display.setTextColor(WHITE);
-    // display.setFont(&FreeMono9pt7b);
+    display.begin(SSD1306_SWITCHCAPVCC, 0x3C); // OLED Display
+    display.clearDisplay();
+    display.setTextColor(WHITE);
+    display.setFont(&FreeMono9pt7b);
 
+    if (digitalRead(MODE_SWITCH)) {
+      role = METHANOS; 
+      Serial3.write("m");
+      decision.setMode(1);
+    } else {
+      role = THANOS;
+      Serial3.write("t");
+      decision.setMode(10);
+    }
+
+    updateDisplay();
     initialTime = millis();
 }
 
-// void loop() {
-//   // leftValue = digitalRead(LEFT_SENSOR);
-//   // rightValue = digitalRead(RIGHT_SENSOR);
-//   // farLeftValue = digitalRead(FAR_LEFT);
-//   // farRightValue = digitalRead(FAR_RIGHT);
-//   int leftMost = digitalRead(PA11);
-//   int mid = digitalRead(PA12);
-//   int rightMost = digitalRead(PA15);
+/*void loop() {
+  float number = decision.strongest_signal();
+  if (number == LEFT_IR) 
+    Serial.println("Left!!!");
+  else if (number == MID_IR) 
+    Serial.println("Middle!!!");
+  else if (number == RIGHT_IR) 
+    Serial.println("Right!!!");
+  else 
+    Serial.println("error finding max");
 
-//   // Serial.print((int)farLeftValue);
-//   // Serial.print((int)leftValue);
-//   // Serial.print((int)rightValue);
-//   // Serial.println((int)farRightValue);
+  float leftIntensity = decision.corrleft;
+  midIntensity = decision.corrcenter;
+  float rightIntensity = decision.corrright;
 
-//   Serial.print(leftMost);
-//   Serial.print(mid);
-//   Serial.println(rightMost);
+  Serial.print("Left: ");
+  Serial.println(leftIntensity);
+  Serial.print("Middle: ");
+  Serial.println(midIntensity);
+  Serial.print("Right: ");
+  Serial.println(rightIntensity);
+  Serial.print("Max correlation pin: ");
+  delay(1000);
+}*/
 
-//   delay(750);
+/*void loop() {
+  farLeftVal = digitalRead(FAR_LEFT);
+  stoneLeftVal = digitalRead(STONE_LEFT);
+  leftMidVal = digitalRead(LEFT_MID);
+  midMidVal = digitalRead(MID_MID);
+  rightMidVal = digitalRead(RIGHT_MID);
+  stoneRightVal = digitalRead(STONE_RIGHT);
+  farRightVal = digitalRead(FAR_RIGHT);
 
-// }
+  Serial.print(farLeftVal);
+  Serial.print(" ");
+  Serial.print(stoneLeftVal);
+  Serial.print(" ");
+  Serial.print(leftMidVal);
+  Serial.print(midMidVal);
+  Serial.print(rightMidVal);
+  Serial.print(" ");
+  Serial.print(stoneRightVal);
+  Serial.print(" ");
+  Serial.println(farRightVal);
 
-void loop() {  // SLAVE
+  delay(200);
+}*/
+
+
+ void loop() {  // SLAVE
   timeElapsed = (millis() - initialTime)/1000; // in seconds
 
   if (timeElapsed < RAMP_TIME)
@@ -174,89 +222,31 @@ void loop() {  // SLAVE
     currentMajorState = stones;
   else 
     currentMajorState = depositPlushie;
-
-  //  if (timeElapsed < 3)//RAMP_TIME)
-  //   //data = 0;
-  //    currentMajorState = upRamp;
-  // else if (timeElapsed < 6)//COLLECT_TIME)
-  //   //  data = 1;
-  //   currentMajorState = collectPlushie;//collectPlushie;
-  // else if (timeElapsed < 9)
-  //   //  data = 2;
-  //   currentMajorState = depositPlushie;
-  // else 
-  //   //  data = 3;
-  //  currentMajorState = stones;
   
   if ((numberOfTurns > 0) && (currentMajorState == upRamp)){
-    Serial.println(collectPlushie);
+    //Serial.println(collectPlushie);
     Serial3.write(collectPlushie);
   } else {
-    Serial.println((int)currentMajorState);
+    //Serial.println((int)currentMajorState);
     Serial3.write((int)currentMajorState);
   }
-
-  // if (numberOfTurns == 1){                 //NEWEST ONE
-  //   Serial3.write((int)collectPlushie);
-  // } else if(currentMajorState != previousMajorState){
-  //   if (currentMajorState == depositPlushie) {
-  //     // while (!(Serial3.available())) {
-  //     //   drive(0,0,0,0); //before spin
-  //     //   Serial3.flush();
-  //     // }
-  //     drive(0,0,0,0);
-  //     Serial3.flush(); //might have to comment
-  //     Serial3.write((int)depositPlushie); 
-  //   } 
-  //   Serial3.write((int)currentMajorState); 
-  // }
-
-  // if (numberOfTurns == 1) {
-  //   Serial3.write((int)collectPlushie);
-  // } else if (currentMajorState != previousMajorState) {
-  //   if (currentMajorState == depositPlushie) {
-  //     drive(0,0,0,0);
-  //     delay(2000);
-  //   }
-  //   Serial3.flush();
-  //   Serial3.write((int)currentMajorState);
-  // }
-
-  // if (timeElapsed < COM_PLUSH_COLLECT_TIME)
-  //   Serial3.write((int)upRamp); 
-  // else if (timeElapsed < COM_PLUSH_DEPOSIT_TIME)
-  //   Serial3.write((int)collectPlushie); 
-  // else if (timeElapsed < COM_STONES)
-  //   Serial3.write((int)depositPlushie); 
-  // else 
-  //   Serial3.write((int)stones); 
   
-
-  /*if (numberOfTurns == 1){     //magic
-    Serial3.write((int)collectPlushie);
-  } else if(currentMajorState == depositPlushie){
-    if (butterfly == false) {
-      butterfly = true;
-      drive(0,0,0,0);
-    }
-    Serial3.write((int)currentMajorState); 
-  } else {
-      Serial3.write((int)currentMajorState); 
-  }*/
-
-  leftValue = digitalRead(LEFT_SENSOR);
-  rightValue = digitalRead(RIGHT_SENSOR);
-  farLeftValue = digitalRead(FAR_LEFT);
-  farRightValue = digitalRead(FAR_RIGHT);
-
+  farLeftVal = digitalRead(FAR_LEFT);
+  stoneLeftVal = digitalRead(STONE_LEFT);
+  leftMidVal = digitalRead(LEFT_MID);
+  midMidVal = digitalRead(MID_MID);
+  rightMidVal = digitalRead(RIGHT_MID);
+  stoneRightVal = digitalRead(STONE_RIGHT);
+  farRightVal = digitalRead(FAR_RIGHT);
+ 
   switch ( currentMajorState ) { // state machine
     case upRamp:
-      currentPidState = getPidState(leftValue, rightValue, farLeftValue, farRightValue);
+      currentPidState = getPidState(farLeftVal, stoneLeftVal, leftMidVal, midMidVal, rightMidVal, stoneRightVal, farRightVal);
       pidStateMachine();
       break;
 
     case collectPlushie:
-      currentPidState = getPidState(leftValue, rightValue, farLeftValue, farRightValue);
+      currentPidState = getPidState(farLeftVal, stoneLeftVal, leftMidVal, midMidVal, rightMidVal, stoneRightVal, farRightVal);
       pidStateMachine();
       break;
 
@@ -269,13 +259,13 @@ void loop() {  // SLAVE
       break;
   }
   previousMajorState = currentMajorState;
-}
+ }
  
 
 //increase the first turn left delay
-pidState getPidState(float left, float right, float farLeft, float farRight){
+pidState getPidState(int farLeft, int stoneLeft, int leftMid, int midMid, int rightMid, int stoneRight, int farRight) {
 
-  #if (ROLE == THANOS) 
+  if (role == THANOS) {
     if (farLeft == ON) {
       if (currentMajorState == upRamp) { //if its 0 or 1
         numberOfTurns++;
@@ -291,12 +281,12 @@ pidState getPidState(float left, float right, float farLeft, float farRight){
         return turnRight; 
       }
     }
-  #elif (ROLE == METHANOS) 
+  } else if (role == METHANOS) {
     if (farRight == ON) {
       if (currentMajorState == upRamp) { //if its 0 or 1 //got rid of number of turns <2
         numberOfTurns++;
         if (numberOfTurns == 1)  //first turn
-          delay(450); //up ramp delay,  400 at 60 pwm speed, 300 at 50 pwm
+          delay(450); //up ramp delay, 400 at 60 pwm speed, 300 at 50 pwm
         return turnRight;
       }
     }
@@ -307,143 +297,160 @@ pidState getPidState(float left, float right, float farLeft, float farRight){
         return turnLeft; 
       }
     }
-  #endif
+  }
 
-  if ( (left == ON) && (right == ON) )
-    return onTrack;
-  else if ( (right == ON) && (left == OFF) )
-    return leftOff;
-  else if ( (right == OFF) && (left == ON) )
-    return rightOff;
+
+  if ( (leftMid == OFF) && (midMid == ON) && (rightMid == OFF) )
+    return onTape;
+  else if ( (leftMid == OFF) && (midMid == ON) && (rightMid == ON) )
+    return offOnOn;
+  else if ( (leftMid == OFF) && (midMid == OFF) && (rightMid == ON) )
+    return offOffOn;
+   else if ( (leftMid == ON) && (midMid == ON) && (rightMid == OFF) )
+    return onOnOff;
+   else if ( (leftMid == ON) && (midMid == OFF) && (rightMid == OFF) )
+    return onOffOff;         
   else
     return white;
      
 }
 
+//enum pidState { onTape, offOnOn, offOffOn, onOnOff, onOffOff, white, turnLeft, turnRight, stoneOnRight, stoneOnLeft } ;
+
 //modular
 void pidStateMachine() {
-
-  //update kp and kd values if we modified with the potentiometer
-  // kp_reading = analogRead(KP_POTMETER);
-  // if(kp_reading != p_i_d.kp){
-  //   p_i_d.kp = map(kp_reading, 0, 1023, 0, 500); 
-  // }
-  // kd_reading = analogRead(KD_POTMETER);
-  // if(kd_reading != p_i_d.kd){
-  //   p_i_d.kd = map(kd_reading, 0, 1023, 0, 500);
-  // }
   switch ( currentPidState ) { //state machine
+  
+  case onTape : //drive straight
+    error = 0; 
+    leftSpeed = targetSpeed + p_i_d.output_pid(error);
+    rightSpeed = targetSpeed + p_i_d.output_pid(error);
+    drive(0, leftSpeed, 0, rightSpeed);
+    break;
 
-    case onTrack : //drive straight
-      error = 0; 
-      leftSpeed = targetSpeed + p_i_d.output_pid(error);
-      rightSpeed = targetSpeed + p_i_d.output_pid(error);
-      // Serial.println(error);
-      // Serial.println(leftSpeed);
-      // Serial.println(rightSpeed);
-      // Serial.println();
-      drive(0, leftSpeed, 0, rightSpeed);
-      break;
+  case offOnOn : //turn right
+    error = 2; 
+    leftSpeed = targetSpeed + p_i_d.output_pid(error);
+    rightSpeed = targetSpeed + p_i_d.output_pid(-error);
+    // Serial.println(error);
+    // Serial.println(leftSpeed);
+    // Serial.println(rightSpeed);
+    // Serial.println();
+    drive(0, leftSpeed, 0, rightSpeed); //left needs to catch up, right side weaker
+    break;
 
-    case leftOff : //turn right
-      error = 1; 
+  case onOnOff : //turn left
+    error = 2; 
+    leftSpeed = targetSpeed + p_i_d.output_pid(-error);
+    rightSpeed = targetSpeed + p_i_d.output_pid(error);
+    // Serial.println(error);
+    // Serial.println(leftSpeed);
+    // Serial.println(rightSpeed);
+    // Serial.println();
+    drive(0, leftSpeed, 0, rightSpeed); //left weaker, right needs to catch up 
+    break;
+
+  case offOffOn : //turn right
+    error = 4; 
+    leftSpeed = targetSpeed + p_i_d.output_pid(error);
+    rightSpeed = targetSpeed + p_i_d.output_pid(-error);
+    // Serial.println(error);
+    // Serial.println(leftSpeed);
+    // Serial.println(rightSpeed);
+    // Serial.println();
+    drive(0, leftSpeed, 0, rightSpeed); //left needs to catch up, right side weaker
+    break;
+
+  case onOffOff : //turn left
+    error = 4; 
+    leftSpeed = targetSpeed + p_i_d.output_pid(-error);
+    rightSpeed = targetSpeed + p_i_d.output_pid(error);
+    // Serial.println(error);
+    // Serial.println(leftSpeed);
+    // Serial.println(rightSpeed);
+    // Serial.println();
+    drive(0, leftSpeed, 0, rightSpeed); //left weaker, right needs to catch up 
+    break;
+
+  case white : //both sensors off tape
+    error = 6; //4
+    if ((previousPidState == offOnOn) || (previousPidState == offOffOn)) { // continue to turn right
       leftSpeed = targetSpeed + p_i_d.output_pid(error);
       rightSpeed = targetSpeed + p_i_d.output_pid(-error);
-      // Serial.println(error);
-      // Serial.println(leftSpeed);
-      // Serial.println(rightSpeed);
-      // Serial.println();
       drive(0, leftSpeed, 0, rightSpeed); //left needs to catch up, right side weaker
-      break;
-
-    case rightOff : //turn left
-      error = 1; 
+    } else if ((previousPidState == onOnOff) || (previousPidState == onOffOff)) { // continue to turn left
       leftSpeed = targetSpeed + p_i_d.output_pid(-error);
       rightSpeed = targetSpeed + p_i_d.output_pid(error);
-      // Serial.println(error);
-      // Serial.println(leftSpeed);
-      // Serial.println(rightSpeed);
-      // Serial.println();
-      drive(0, leftSpeed, 0, rightSpeed); //left weaker, right needs to catch up 
-      break;
-
-    case white : //both sensors off tape
-      error = 3; //4
-      if(previousPidState == leftOff) {  // continue to turn right
-        leftSpeed = targetSpeed + p_i_d.output_pid(error);
-        rightSpeed = targetSpeed + p_i_d.output_pid(-error);
-        drive(0, leftSpeed, 0, rightSpeed); //left needs to catch up, right side weaker
-      } else if(previousPidState == rightOff) {  // continue to turn left
-        leftSpeed = targetSpeed + p_i_d.output_pid(-error);
-        rightSpeed = targetSpeed + p_i_d.output_pid(error);
-        drive(0, leftSpeed, 0, rightSpeed); //left weaker, right needs to catch up
-      } else if(previousPidState == turnLeft){ //continue to turn left
-        leftSpeed = targetSpeed + p_i_d.output_pid(-error);
-        rightSpeed = targetSpeed + p_i_d.output_pid(error);
-        drive(0, leftSpeed, 0, rightSpeed);  
-      } else if (previousPidState == turnRight){ //continue to turn right
-        leftSpeed = targetSpeed + p_i_d.output_pid(error);
-        rightSpeed = targetSpeed + p_i_d.output_pid(-error);
-        drive(0, leftSpeed, 0, rightSpeed);  
-      } 
-      // Serial.println(error);
-      // Serial.println(leftSpeed);
-      // Serial.println(rightSpeed);
-      // Serial.println();
-      break;
-    
-    case turnLeft :
-      if (numberOfTurns == 1)
-        error = 2.5;  //2
-      else
-        error = 4; //9
- 
-      leftSpeed  = targetSpeed + p_i_d.output_pid(-error);
+      drive(0, leftSpeed, 0, rightSpeed); //left weaker, right needs to catch up
+    } else if(previousPidState == turnLeft){ //continue to turn left
+      leftSpeed = targetSpeed + p_i_d.output_pid(-error);
       rightSpeed = targetSpeed + p_i_d.output_pid(error);
-      // Serial.println(error);
-      // Serial.println(leftSpeed);
-      // Serial.println(rightSpeed);
-      // Serial.println();
-      drive(0, leftSpeed, 0, rightSpeed); //left weaker, right needs to catch up 
-      delay(200);  
-      if (numberOfTurns == 1) 
-        delay(800);
-
-      break;
-
-    case turnRight : //not doing yet
-      if (numberOfTurns == 1) 
-        error = 2.5;  //2
-      else
-        error = 4;  //9      
-      
+      drive(0, leftSpeed, 0, rightSpeed); 
+    } else if (previousPidState == turnRight){ //continue to turn right
       leftSpeed = targetSpeed + p_i_d.output_pid(error);
       rightSpeed = targetSpeed + p_i_d.output_pid(-error);
-      // Serial.println(error);
-      // Serial.println(leftSpeed);
-      // Serial.println(rightSpeed);
-      // Serial.println();
-      drive(0, leftSpeed, 0, rightSpeed); //left needs to catch up, right side weaker
-      delay(200); 
-      if (numberOfTurns == 1) 
-        delay(800);
-      
-      break;
+      drive(0, leftSpeed, 0, rightSpeed); 
+    } 
+    break;
 
-    default:
-      drive(0, 0, 0, 0); //spin for 5 seconds
-      delay(5000);  // this should never happen...
-      break;  
+  case turnLeft :
+    if (numberOfTurns == 1)
+    error = 5; //2
+    else
+    error = 8; //9
+    leftSpeed = targetSpeed + p_i_d.output_pid(-error);
+    rightSpeed = targetSpeed + p_i_d.output_pid(error);
+    // Serial.println(error);
+    // Serial.println(leftSpeed);
+    // Serial.println(rightSpeed);
+    // Serial.println();
+    drive(0, leftSpeed, 0, rightSpeed); //left weaker, right needs to catch up 
+    delay(300); 
+    if (numberOfTurns == 1) 
+    delay(700);
+    break;
+
+  case turnRight : 
+    if (numberOfTurns == 1) 
+    error = 5; //2
+    else
+    error = 8; //9 
+    leftSpeed = targetSpeed + p_i_d.output_pid(error);
+    rightSpeed = targetSpeed + p_i_d.output_pid(-error);
+    // Serial.println(error);
+    // Serial.println(leftSpeed);
+    // Serial.println(rightSpeed);
+    // Serial.println();
+    drive(0, leftSpeed, 0, rightSpeed); //left needs to catch up, right side weaker
+    delay(300); //thanos side is different
+    if (numberOfTurns == 1) 
+      delay(700);
+    break;
+
+  case stoneOnRight : //not doing yet
+    drive(0,0,0,0);
+    delay(5000);
+    break; 
+
+  case stoneOnLeft : //not doing yet
+    drive(0,0,0,0);
+    delay(5000);
+    break; 
+
+  default :
+    drive(0, 0, 0, 0); //spin for 5 seconds
+    delay(5000); // this should never happen...
+    break; 
+
   }
 
-  if (currentPidState != onTrack && currentPidState != white)
+  if (currentPidState != onTape && currentPidState != white)
     previousPidState = currentPidState;
-
-  // displayPID();
-  // displayRefl(); //these display 'global values'
 }
 
+
 void irStateMachine() {
+
   /*float number = decision.strongest_signal();
   if (number == LEFT_IR) 
     Serial.println("Left!!!");
@@ -465,7 +472,6 @@ void irStateMachine() {
   Serial.print("Right: ");
   Serial.println(rightIntensity);
   Serial.print("Max correlation pin: ");
-  
   delay(1000);*/
   switch ( currentIrState ) { //state machine
     case initialSpin : //drive straight
@@ -473,11 +479,10 @@ void irStateMachine() {
       midIntensity = decision.corrcenter;
       // drive(0,0,0,0);
       // delay(3000); //help door stop without forces
-      #if (ROLE == THANOS)
+      if (role == THANOS)
         drive(0, spinSpeed, spinSpeed, 0); // spin CW
-      #elif (ROLE == METHANOS)
+      else if (role == METHANOS)
         drive(spinSpeed, 0, 0, spinSpeed); // spin CCW 
-      #endif
       
       if ((highestPin == MID_IR) && (midIntensity > irStartThreshold)) {
         drive(0,0,0,0);
@@ -497,12 +502,16 @@ void irStateMachine() {
 
     case drivingClose :
       midIntensity = decision.corrcenter;
-      leftValue = digitalRead(LEFT_SENSOR);
-      rightValue = digitalRead(RIGHT_SENSOR);
-      farLeftValue = digitalRead(FAR_LEFT);
-      farRightValue = digitalRead(FAR_RIGHT);
 
-      if ((leftValue == ON) || (rightValue  == ON) || (farLeftValue  == ON) || (farRightValue == ON)) {
+      farLeftVal = digitalRead(FAR_LEFT);
+      stoneLeftVal = digitalRead(STONE_LEFT);
+      leftMidVal = digitalRead(LEFT_MID);
+      midMidVal = digitalRead(MID_MID);
+      rightMidVal = digitalRead(RIGHT_MID);
+      stoneRightVal = digitalRead(STONE_RIGHT);
+      farRightVal = digitalRead(FAR_RIGHT);
+
+      if ((farLeftVal == ON) || (leftMidVal  == ON) || (midMidVal  == ON) || (rightMidVal == ON) || (farRightVal == ON)) {
         currentIrState = stop;
         break;
       }
@@ -581,32 +590,29 @@ float speedCapOff(float speed) {
     return speed;
 }
 
-// void displayPID(){
-//   display.clearDisplay();
-//   display.setCursor(5,20);
-//   display.print("kp:");
-//   display.println(p_i_d.kp);
-//   display.setCursor(5,40);
-//   display.print("kd:");
-//   display.println(p_i_d.kd);
-//   display.display();
-// }
-// void displayRefl(){
-//   display.clearDisplay();
-//   display.setCursor(3,20);
-//   display.print("FL:");
-//   display.println(farLeftValue); //farleft
-//   display.setCursor(65,20);
-//   display.print("FR:");
-//   display.println(farRightValue); //farright
-//   display.setCursor(3, 50);
-//   display.print("L:");
-//   display.println(leftValue); //midleft
-//   display.setCursor(65, 50);
-//   display.print("R:");
-//   display.println(rightValue); //midright
-//   display.display();  
-// }
+void updatePotVal(){
+  p_i_d.kp = 80+100*analogRead(KP_METER)/1023;
+  p_i_d.kd = 160+220*analogRead(KD_METER)/1023;
+ }
+
+ void updateDisplay() {
+    updatePotVal();
+    display.clearDisplay();
+    display.setCursor(5, 20);
+    display.print("kp: ");
+    display.println(p_i_d.kp);
+    display.setCursor(5, 40);
+    display.print("kd: ");
+    display.println(p_i_d.kd);
+    display.setCursor(5, 60);
+    if (role == THANOS)
+      display.println("Thanos D:");
+    else if (role == METHANOS)
+      display.println("Methanos :D");
+    display.display();
+ }
+
+
 // void displayIR(){
 //   display.clearDisplay();
 //   display.setCursor(0,20);
