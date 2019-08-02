@@ -18,7 +18,7 @@ HardwareSerial Serial3 = HardwareSerial(RX3, TX3);
 
 #define THANOS 0
 #define METHANOS 1
-// #define ROLE METHANOS
+#define ROLE THANOS
 
 #define COM_PLUSH_COLLECT_TIME 8
 #define COM_PLUSH_DEPOSIT_TIME 26
@@ -26,12 +26,11 @@ HardwareSerial Serial3 = HardwareSerial(RX3, TX3);
 int currentMajorState;
 void calibrateDoors();
 void ultrasonicStateMachine();
-char role;
 
 void setup() {
   Serial.begin(115200);
   Serial3.begin(9600);
-  currentDoorState = doorsOpen;
+  currentDoorState = doorsClosed;
 }
 
 //without communication:
@@ -54,19 +53,18 @@ void setup() {
 
 //with communication:
 void loop() {  // MASTER
-  char role = Serial3.read();
-  if (role == 'm'){
-    #define ROLE METHANOS
-  } else if (role == 't'){
-    #define ROLE THANOS  
-  } else{
+  // char role = Serial3.read();
+  // if (role == 'm'){
+  //   #define ROLE METHANOS
+  // } else if (role == 't'){
+  //   #define ROLE THANOS  
+  // } else{
 
-  }
+  // }
   currentMajorState = Serial3.read();
     
    switch (currentMajorState) {
     case 0: // upRamp
-      //Serial.println("upRamp");
       if(currentDoorState!=doorsClosed){
         side_doors.doorsClose();
         currentDoorState = doorsClosed;
@@ -86,12 +84,10 @@ void loop() {  // MASTER
           currentDoorState = doorsOpen;
         }
       #endif
-     // Serial.println("collect");
       //ultrasonicStateMachine();
       break;
     
     case 2: // plushieDeposit
-      //Serial.println("deposit");
       if(currentDoorState!=doorsTogether){
           side_doors.doorsTogether();
           currentDoorState = doorsTogether;
@@ -100,7 +96,6 @@ void loop() {  // MASTER
       break;
 
     case 3: //stones
-      //Serial.println("stones");
       if(currentDoorState!=doorsClosed){
         side_doors.doorsWrite(90);
         delay(500);
@@ -157,11 +152,11 @@ void loop() {  // MASTER
 void ultrasonicStateMachine(){
       loc = ultra.loc_of_obj(RANGE);
       switch(loc){
-        case ultrasonic::right:
-          side_doors.rightDoorWrite(0); //close more than the Methanos angle, to see the change
+        case ultrasonic::left:
+          side_doors.leftDoorWrite(0); //close more than the Methanos angle, to see the change
           break;
-        case ultrasonic::center_right:
-          side_doors.rightDoorWrite(0); //close more than the Methanos angle, to see the change
+        case ultrasonic::left_center:
+          side_doors.leftDoorWrite(0); //close more than the Methanos angle, to see the change
           break;
       }
       /*switch(loc){

@@ -7,6 +7,9 @@ SideDoors::SideDoors(int leftDoorServo, int rightDoorServo):
     delay(200);
     left_door_servo.attach(left_door);
     delay(100);
+    left_door_servo.write(180-0);
+    delay(750);
+    right_door_servo.write(0);
 }
 
 void SideDoors::leftDoorWrite(int angle){

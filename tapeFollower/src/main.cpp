@@ -59,7 +59,7 @@ float targetIrSpeed = 22*period/100;  //25
 float targetIrSpeedPlus = 27*period/100;  //30
 float targetIrSpeedMinus = 17*period/100;  //20
 
-float targetSpeed = 60*period/100;
+float targetSpeed = 50*period/100;
 float leftSpeed = targetSpeed;
 float rightSpeed = targetSpeed;
 
@@ -121,8 +121,7 @@ void setup() {
     pinMode(STONE_RIGHT, INPUT_PULLUP);
     pinMode(FAR_RIGHT, INPUT_PULLUP);
 
-    pinMode(KP_KD_BUTTON, INPUT_PULLUP);
-    // attachInterrupt(digitalPinToInterrupt(KP_KD_BUTTON), updatePotVal, CHANGE);
+    // pinMode(KP_KD_BUTTON, INPUT_PULLUP);
         
     pinMode(LEFT_MOTOR_FW, OUTPUT);
     pinMode(LEFT_MOTOR_BW, OUTPUT);
@@ -142,27 +141,29 @@ void setup() {
     // irDefined = false;
     stonePart = false;
 
-    display.begin(SSD1306_SWITCHCAPVCC, 0x3C); // OLED Display
-    display.clearDisplay();
-    display.setTextColor(WHITE);
-    display.setFont(&FreeMono9pt7b);
+    // display.begin(SSD1306_SWITCHCAPVCC, 0x3C); // OLED Display
+    // display.clearDisplay();
+    // display.setTextColor(WHITE);
+    // display.setFont(&FreeMono9pt7b);
 
-    if (digitalRead(MODE_SWITCH)) {
-      role = METHANOS; 
-      Serial3.write("m");
-      decision.setMode(1);
-    } else {
-      role = THANOS;
-      Serial3.write("t");
-      decision.setMode(10);
-    }
+    // if (digitalRead(MODE_SWITCH)) {
+    //   role = METHANOS; 
+    //   Serial3.write("m");
+    //   decision.setMode(1);
+    // } else {
+    //   role = THANOS;
+    //   Serial3.write("t");
+    //   decision.setMode(10);
+    // }
+    role = THANOS;
+    decision.setMode(10);
 
-    updateDisplay();
+    // updateDisplay();
     initialTime = millis();
 }
 
 /*void loop() {
-  float number = decision.strongest_signal();
+  float number =    .strongest_signal();
   if (number == LEFT_IR) 
     Serial.println("Left!!!");
   else if (number == MID_IR) 
@@ -214,18 +215,20 @@ void setup() {
  void loop() {  // SLAVE
   timeElapsed = (millis() - initialTime)/1000; // in seconds
 
-  if (timeElapsed < RAMP_TIME)
-    currentMajorState = upRamp;
-  else if (timeElapsed < COLLECT_TIME)
-    currentMajorState = collectPlushie;
-  else if (stonePart == true)
-    currentMajorState = stones;
-  else 
-    currentMajorState = depositPlushie;
+  // if (timeElapsed < RAMP_TIME)
+  //   currentMajorState = upRamp;
+  // else if (timeElapsed < COLLECT_TIME)
+  //   currentMajorState = collectPlushie;
+  // else if (stonePart == true)
+  //   currentMajorState = stones;
+  // else 
+  //   currentMajorState = depositPlushie;
+
+  currentMajorState = collectPlushie;
   
   if ((numberOfTurns > 0) && (currentMajorState == upRamp)){
     //Serial.println(collectPlushie);
-    Serial3.write(collectPlushie);
+    Serial3.write((int)collectPlushie);
   } else {
     //Serial.println((int)currentMajorState);
     Serial3.write((int)currentMajorState);
