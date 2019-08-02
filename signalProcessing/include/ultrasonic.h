@@ -1,7 +1,7 @@
 #include <Arduino.h>
 #include <Servo.h>
 
-#define RANGE 30 //cm
+#define RANGE 45 //cm
 
 class ultrasonic{
     private:

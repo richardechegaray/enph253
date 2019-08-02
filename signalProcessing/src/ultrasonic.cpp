@@ -12,8 +12,8 @@ echo(pin_echo)
     pinMode(trig, OUTPUT); 
     pinMode(echo, INPUT);
     myservo.attach(SERVO_PIN);
-    //center_angle = servo_center(RANGE);
-    //myservo.write(center_angle);
+    // center_angle = servo_center(RANGE);
+    // myservo.write(center_angle);
     myservo.write(90);
     delay(500);
 }
