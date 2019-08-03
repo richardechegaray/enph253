@@ -27,22 +27,24 @@ void ultrasonicStateMachine();
 void setup() {
   Serial.begin(115200);
   Serial3.begin(9600);
-  currentDoorState = doorsClosed;
-  #if (ROLE == THANOS)
-  // if(currentDoorState!=doorsOpen){
-    side_doors.doorsOpenT();
-    // currentDoorState = doorsOpen;
-  //} 
-  #elif (ROLE == METHANOS)
-    // if(currentDoorState!=doorsOpen){
-      side_doors.doorsOpenM();
-      // currentDoorState = doorsOpen;
-    //}
-  #endif
+  currentDoorState = doorsOpen;
+  // #if (ROLE == THANOS)
+  // // if(currentDoorState!=doorsOpen){
+  //   side_doors.doorsOpenT();
+  //   // currentDoorState = doorsOpen;
+  // //} 
+  // #elif (ROLE == METHANOS)
+  //   // if(currentDoorState!=doorsOpen){
+  //     side_doors.doorsOpenM();
+  //     // currentDoorState = doorsOpen;
+  //   //}
+  // #endif
+
 }
 
 void loop() {  // MASTER
-  /*currentMajorState = Serial3.read();
+//side_doors.doorsClose();
+  currentMajorState = Serial3.read();
     
    switch (currentMajorState) {
     case 0: // upRamp
@@ -65,7 +67,7 @@ void loop() {  // MASTER
           currentDoorState = doorsOpen;
         }
       #endif
-      ultrasonicStateMachine();
+      //ultrasonicStateMachine();
       break;
     
     case 2: // plushieDeposit
@@ -90,8 +92,7 @@ void loop() {  // MASTER
 
     default:
       break;
-   }*/
-    ultrasonicStateMachine();
+   }
 }
 
 /*void loop(){
@@ -133,62 +134,64 @@ void loop() {  // MASTER
 
 void ultrasonicStateMachine(){
       loc = ultra.loc_of_obj(RANGE);
-      switch(loc){
+      /*switch(loc){
         case ultrasonic::left:
           side_doors.leftDoorWrite(55); //close less than the left_center case
           break;
         case ultrasonic::left_center:
-          side_doors.leftDoorWrite(0); 
+          side_doors.leftDoorWrite(55); 
           break;
         default:
-        #if (ROLE == THANOS)
-         // if(currentDoorState!=doorsOpen){
+        if (ROLE == THANOS){
+          // if(currentDoorState!=doorsOpen){
             //side_doors.doorsOpenT();
             side_doors.leftDoorWrite(90);
            // currentDoorState = doorsOpen;
-          //} 
-          #elif (ROLE == METHANOS)
-           // if(currentDoorState!=doorsOpen){
+          //}
+        } else if(ROLE == METHANOS){
+          // if(currentDoorState!=doorsOpen){
               side_doors.rightDoorWrite(90);
              // currentDoorState = doorsOpen;
             //}
-          #endif
+        }
           break;
-      }
+      }*/
       /*switch(loc){
        case ultrasonic::left:
-            side_doors.leftDoorWrite(60); //left 90, right same as before
-            break;
+          //Serial.println("left");
+          //side_doors.leftDoorWrite(60); //left 90, right same as before
+          break;
         case ultrasonic::left_center:
-            //need to turn right until we read black tape again
-            //Serial3.write(loc);
-            side_doors.leftDoorWrite(30); //left 90, right same as before
-            break;
+          //Serial.println("left-center");
+          //side_doors.leftDoorWrite(30); //left 90, right same as before
+          break;
         case ultrasonic::center:
-            //need to turn left (METHANOS) or right (THANOS) until we read black tape again
-            //Serial3.write(loc);
-            //?
-            side_doors.doorsWrite(15); 
-            break;
+          //Serial.println("center");
+          //side_doors.doorsWrite(15); 
+          break;
         case ultrasonic::center_right:
-            //need to turn left until we read black tape again
-            //Serial3.write(loc);
-            side_doors.rightDoorWrite(30);
-            break;
+          //Serial.println("center-right");
+          //side_doors.rightDoorWrite(30);
+          break;
         case ultrasonic::right:
-            side_doors.rightDoorWrite(60); //right 90, left same as before
-            break;
+         // Serial.println("right");
+          //side_doors.rightDoorWrite(60); //right 90, left same as before
+          break;
         case ultrasonic::left_right:
-            side_doors.doorsWrite(30);  //left 90, right 90
-            break;
+         // Serial.println("left-right");
+          //side_doors.doorsWrite(30);  //left 90, right 90
+          break;
         case ultrasonic::all:
-            //need to turn left (METHANOS) or right (THANOS) until we read black tape again
-            //Serial3.write(loc);
-            side_doors.doorsWrite(15);
-            break;
+          //Serial.println("all");
+          //side_doors.doorsWrite(15);
+          break;
         case ultrasonic::none:
-            side_doors.doorsWrite(120); //left 120, right 60 (normal plushie collection position!)
-            break;        
+          //Serial.println("none");
+          //side_doors.doorsWrite(120); //left 120, right 60 (normal plushie collection position!)
+          break; 
+        default:
+          //Serial.println("default");   
+          break;    
       }*/
 }
 
@@ -236,13 +239,13 @@ void ultrasonicStateMachine(){
   }
 }*/
 
-void calibrateDoors() {
-  side_doors.doorsClose();
-  delay(5000);
-  side_doors.doorsOpenM();
-  delay(5000);
-  side_doors.doorsTogether();
-  delay(5000);
-  side_doors.doorsOpenT();
-  delay(5000);  
-}
+// void calibrateDoors() {
+//   side_doors.doorsClose();
+//   delay(5000);
+//   side_doors.doorsOpenM();
+//   delay(5000);
+//   side_doors.doorsTogether();
+//   delay(5000);
+//   side_doors.doorsOpenT();
+//   delay(5000);  
+// }

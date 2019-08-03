@@ -7,9 +7,9 @@ SideDoors::SideDoors(int leftDoorServo, int rightDoorServo):
     delay(200);
     left_door_servo.attach(left_door);
     delay(100);
-    left_door_servo.write(180-0);
-    delay(750);
-    right_door_servo.write(0);
+    // left_door_servo.write(180-0);
+    // delay(750);
+    // right_door_servo.write(0);
 }
 
 void SideDoors::leftDoorWrite(int angle){
@@ -42,11 +42,11 @@ void SideDoors::doorsTogether(){ // close left first
 void SideDoors::doorsOpenT(){ // left door smaller
   right_door_servo.write(150);
   delay(200);
-  left_door_servo.write(180-90); //85 degrees
+  left_door_servo.write(180-50); //85 degrees
 }
 
 void SideDoors::doorsOpenM(){ // right door smaller
-  right_door_servo.write(90);
+  right_door_servo.write(50);
   delay(200);
   left_door_servo.write(180-150); //150 degrees
 }
