@@ -62,11 +62,11 @@ enum ultrasonic::location ultrasonic::loc_of_obj(int range){
         }
         delay(200);
     }
-    for(int i = 0; i < sizeof(obj_detected)/sizeof(int); i++){
-        Serial.print(obj_detected[i]);
-    }
-    Serial.println();
-    /*if(obj_detected[3]){
+    // for(int i = 0; i < sizeof(obj_detected)/sizeof(int); i++){
+    //     Serial.print(obj_detected[i]);
+    // }
+    // Serial.println();
+    if(obj_detected[3]){
         return center;
     } else if((obj_detected[1] || obj_detected[2]) && (obj_detected[4] || obj_detected[5])){
         return left_right;
@@ -80,7 +80,7 @@ enum ultrasonic::location ultrasonic::loc_of_obj(int range){
         return right;
     } else{
         return none;
-    }*/
+    }
     // zero = obj_detected[0];
     // one = obj_detected[1];
     // two = obj_detected[2];

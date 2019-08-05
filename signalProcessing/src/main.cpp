@@ -11,6 +11,7 @@ ultrasonic::location loc;
 #define RIGHT_DOOR_SERVO PB12
 SideDoors side_doors = SideDoors(LEFT_DOOR_SERVO, RIGHT_DOOR_SERVO);
 enum doorStates{doorsClosed, doorsOpen, doorsTogether} currentDoorState;
+//enum commsMap {thanos, methanos, upRamp, collectPlushie, depositPlushie, stones, shutDown, firstTurnColl, driveStraightColl, lastTurnColl} message;
 
 #define TX3 PB10
 #define RX3 PB11
@@ -23,28 +24,16 @@ HardwareSerial Serial3 = HardwareSerial(RX3, TX3);
 int currentMajorState;
 void calibrateDoors();
 void ultrasonicStateMachine();
+int counter = 0;
 
 void setup() {
   Serial.begin(115200);
   Serial3.begin(9600);
   currentDoorState = doorsOpen;
-  // #if (ROLE == THANOS)
-  // // if(currentDoorState!=doorsOpen){
-  //   side_doors.doorsOpenT();
-  //   // currentDoorState = doorsOpen;
-  // //} 
-  // #elif (ROLE == METHANOS)
-  //   // if(currentDoorState!=doorsOpen){
-  //     side_doors.doorsOpenM();
-  //     // currentDoorState = doorsOpen;
-  //   //}
-  // #endif
-
 }
 
 void loop() {  // MASTER
-//side_doors.doorsClose();
-  currentMajorState = Serial3.read();
+  /*currentMajorState = Serial3.read();
     
    switch (currentMajorState) {
     case 0: // upRamp
@@ -92,7 +81,8 @@ void loop() {  // MASTER
 
     default:
       break;
-   }
+   }*/
+   ultrasonicStateMachine();
 }
 
 /*void loop(){
@@ -156,43 +146,45 @@ void ultrasonicStateMachine(){
         }
           break;
       }*/
-      /*switch(loc){
+      switch(loc){
        case ultrasonic::left:
-          //Serial.println("left");
+          Serial.println("left");
           //side_doors.leftDoorWrite(60); //left 90, right same as before
           break;
         case ultrasonic::left_center:
-          //Serial.println("left-center");
+          Serial.println("left-center");
           //side_doors.leftDoorWrite(30); //left 90, right same as before
           break;
         case ultrasonic::center:
-          //Serial.println("center");
-          //side_doors.doorsWrite(15); 
+          Serial.println("center");
+          //side_doors.doorsWrite(15);
+          counter++; 
           break;
         case ultrasonic::center_right:
-          //Serial.println("center-right");
+          Serial.println("center-right");
           //side_doors.rightDoorWrite(30);
           break;
         case ultrasonic::right:
-         // Serial.println("right");
+          Serial.println("right");
           //side_doors.rightDoorWrite(60); //right 90, left same as before
           break;
         case ultrasonic::left_right:
-         // Serial.println("left-right");
+          Serial.println("left-right");
           //side_doors.doorsWrite(30);  //left 90, right 90
           break;
-        case ultrasonic::all:
-          //Serial.println("all");
-          //side_doors.doorsWrite(15);
-          break;
         case ultrasonic::none:
-          //Serial.println("none");
+          Serial.println("none");
           //side_doors.doorsWrite(120); //left 120, right 60 (normal plushie collection position!)
           break; 
         default:
-          //Serial.println("default");   
+          Serial.println("default");   
           break;    
-      }*/
+      }
+      if(counter == 3){
+        //collision avoidance
+        Serial.println("counted 3");
+        //send bit to driver
+      }
 }
 
 
