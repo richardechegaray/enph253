@@ -16,6 +16,4 @@ class SideDoors{
         void doorsTogether();
         void doorsOpenT();
         void doorsOpenM();
-        int getLeftAngle();
-        int getRightAngle();
 };

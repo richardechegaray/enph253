@@ -141,7 +141,7 @@
 // }
 
 // void loop() {  // SLAVE
-//   timeElapsed = (millis() - initialTime)/1000; // in seconds
+//   /*timeElapsed = (millis() - initialTime)/1000; // in seconds
 //   if (collision == 1)
 //     currentMajorState = avoidCollision;
 //   else if (timeElapsed < RAMP_TIME)
@@ -191,10 +191,13 @@
 //         collisionStateMachine();
 //         break;
 //   }
-//   previousMajorState = currentMajorState;
+//   previousMajorState = currentMajorState;*/
 
 //   /*check for collision avoidance: */
-//   collision = Serial3.read();
+//   //collision = Serial3.read();
+//   if(collision == 0){
+//       collisionStateMachine();
+//   }
 // }
  
 
@@ -497,7 +500,8 @@
 // }
 
 // void collisionStateMachine(){
-//     #if (ROLE == THANOS)
+//     drive(0, targetSpeed, 0, targetSpeed);
+//     /*#if (ROLE == THANOS)
 //         int turn_error = 7; //turn right (when error is positive)
 //     #elif (ROLE == METHANOS)
 //         int turn_error = -7; //turn left
@@ -515,9 +519,9 @@
 //                 interval = (millis() - start)/1000;
 //             }
 //             currentCollisionState = driveStraight;
-//             break;
+//             break;*/
         
-//         case driveStraight:
+//         /*case driveStraight:
 //             //drive straight (0 error)
 //             leftValue = digitalRead(LEFT_SENSOR);
 //             rightValue = digitalRead(RIGHT_SENSOR);
@@ -544,8 +548,8 @@
 //             collision = 0;
 //             currentCollisionState = firstTurn; 
 //             //when we set collision=0, we should not come back to this function-- so for the next collision detection, we set currentCollState to firstTurn once again
-//             break;  
-//     }   
+//             break; 
+//     }*/    
 // }
 
 // // void displayPID(){
