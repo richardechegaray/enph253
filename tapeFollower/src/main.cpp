@@ -44,13 +44,15 @@ HardwareSerial Serial3 = HardwareSerial(RX3, TX3);
 #define RAMP_TIME 15
 #define COLLECT_TIME 29
 
-#define QUARTER_TURN_TIME 1
+#define QUARTER_TURN_TIME 0.45
 
 float clockFreq = 100000;
 float period = 1000;
 
 float initialTime;
 float timeElapsed;
+float collisionStartTime;   
+float collisionTimeInterval;
 
 float spinSpeed = 22*period/100; //make sure this isnt too fast, 20 is too slow
 float targetIrSpeed = 22*period/100;  //25
@@ -60,6 +62,7 @@ float targetIrSpeedMinus = 17*period/100;  //20
 float targetSpeed = 60*period/100;
 float leftSpeed = targetSpeed;
 float rightSpeed = targetSpeed;
+float collisionSpeed = period/2;
 
 float irStartThreshold = 900;
 float closeThreshold = 1000; //past columns
@@ -82,7 +85,7 @@ float error = 0.0;
 int numberOfTurns;
 
 enum majorState { upRamp, collectPlushie, depositPlushie, stones, shutDown } ;
-enum pidState { onTape, offOnOn, offOffOn, onOnOff, onOffOff, white, turnLeft, turnRight, stoneOnRight, stoneOnLeft } ;
+enum pidState { onTape, offOnOn, offOffOn, onOnOff, onOffOff, white, turnLeft, turnRight } ;
 enum irState { initialSpin, drivingFar, drivingClose, /*avoid,*/ stop} ;
 enum collisionState { firstTurn, driveStraight, lastTurn } ;
 //enum commsMap {thanos, methanos, upRamp, collectPlushie, depositPlushie, stones, shutDown, firstTurnColl, driveStraightColl, lastTurnColl};
@@ -101,9 +104,7 @@ int role;
 // IRdecision decision = IRdecision(LEFT_IR, MID_IR, RIGHT_IR, 1); // default is 1kHz but we set this to the correct value in setup
 IRdecision decision; // default is 1kHz but we set this to the correct value in setup
 
-// IRdecision decision10 = IRdecision(LEFT_IR, MID_IR, RIGHT_IR, 10); // default is 1kHz but we set this to the correct value in setup
-
-int collision = 0; 
+// IRdecision decision10 = IRdecision(LEFT_IR, MID_IR, RIGHT_IR, 10); // default is 1kHz but we set this to the correct value in setup 
 
 float speedCapOff(float speed); //add for all functions
 pidState getPidState(int farLeft, int stoneLeft, int leftMid, int midMid, int rightMid, int stoneRight, int farRight);
@@ -212,53 +213,50 @@ void setup() {
 }*/
 
 //QRDs
-// void loop() {
-//   farLeftVal = digitalRead(FAR_LEFT);
-//   stoneLeftVal = digitalRead(STONE_LEFT);
-//   leftMidVal = digitalRead(LEFT_MID);
-//   midMidVal = digitalRead(MID_MID);
-//   rightMidVal = digitalRead(RIGHT_MID);
-//   stoneRightVal = digitalRead(STONE_RIGHT);
-//   farRightVal = digitalRead(FAR_RIGHT);
+/*void loop() {
+  farLeftVal = digitalRead(FAR_LEFT);
+  stoneLeftVal = digitalRead(STONE_LEFT);
+  leftMidVal = digitalRead(LEFT_MID);
+  midMidVal = digitalRead(MID_MID);
+  rightMidVal = digitalRead(RIGHT_MID);
+  stoneRightVal = digitalRead(STONE_RIGHT);
+  farRightVal = digitalRead(FAR_RIGHT);
 
-//   Serial.print(farLeftVal);
-//   Serial.print(" ");
-//   Serial.print(stoneLeftVal);
-//   Serial.print(" ");
-//   Serial.print(leftMidVal);
-//   Serial.print(midMidVal);
-//   Serial.print(rightMidVal);
-//   Serial.print(" ");
-//   Serial.print(stoneRightVal);
-//   Serial.print(" ");
-//   Serial.println(farRightVal);
+  Serial.print(farLeftVal);
+  Serial.print(" ");
+  Serial.print(stoneLeftVal);
+  Serial.print(" ");
+  Serial.print(leftMidVal);
+  Serial.print(midMidVal);
+  Serial.print(rightMidVal);
+  Serial.print(" ");
+  Serial.print(stoneRightVal);
+  Serial.print(" ");
+  Serial.println(farRightVal);
 
-//   display.clearDisplay();
-//   display.setCursor(5, 20);
-//   display.print(farLeftVal);
-//   display.print(" ");
-//   display.print(stoneLeftVal);
-//   display.print(" ");
-//   display.print(leftMidVal);
-//   display.print(midMidVal);
-//   display.print(rightMidVal);
-//   display.print(" ");
-//   display.print(stoneRightVal);
-//   display.print(" ");
-//   display.println(farRightVal);
-//   display.setCursor(5, 40);
-//   currentPidState = getPidState(farLeftVal, stoneLeftVal, leftMidVal, midMidVal, rightMidVal, stoneRightVal, farRightVal);
-//   display.print(currentPidState);
-//   display.display();
-//   delay(200);
-// }
+  display.clearDisplay();
+  display.setCursor(5, 20);
+  display.print(farLeftVal);
+  display.print(" ");
+  display.print(stoneLeftVal);
+  display.print(" ");
+  display.print(leftMidVal);
+  display.print(midMidVal);
+  display.print(rightMidVal);
+  display.print(" ");
+  display.print(stoneRightVal);
+  display.print(" ");
+  display.println(farRightVal);
+  display.setCursor(5, 40);
+  currentPidState = getPidState(farLeftVal, stoneLeftVal, leftMidVal, midMidVal, rightMidVal, stoneRightVal, farRightVal);
+  display.print(currentPidState);
+  display.display();
+  delay(200);
+}*/
 
 
  void loop() {  // SLAVE
-  if(collision == 0){
-    collisionStateMachine();
-  }
-  //timeElapsed = (millis() - initialTime)/1000; // in seconds
+  timeElapsed = (millis() - initialTime)/1000; // in seconds
 
   if (timeElapsed < RAMP_TIME)
     currentMajorState = upRamp;
@@ -269,8 +267,9 @@ void setup() {
   else 
     currentMajorState = depositPlushie;
 
+  if ((timeElapsed > 20) && (timeElapsed < 22))
+    collisionStateMachine();
 
-  /*currentMajorState = collectPlushie;  
   if ((numberOfTurns > 0) && (currentMajorState == upRamp)){
     //Serial.println(collectPlushie);
     Serial3.write((int)collectPlushie);
@@ -306,63 +305,82 @@ void setup() {
       drive(0, 0, 0, 0);
       break;
   }
-   previousMajorState = currentMajorState;*/
-
+   previousMajorState = currentMajorState;
  }
 
 void collisionStateMachine(){
-    #if (role == THANOS)
-        int turn_error = 7; //turn right (when error is positive)
-    #elif (role == METHANOS)
-        int turn_error = -7; //turn left
-    #endif  
-    float start;   
-    float interval;
 
-    switch( currentCollisionState ){
-        case firstTurn:
-            leftSpeed = targetSpeed + p_i_d.output_pid(turn_error);
-            rightSpeed = targetSpeed + p_i_d.output_pid(-turn_error);
-            start = millis(); 
-            interval = (millis() - start)/1000;
-            while (interval != QUARTER_TURN_TIME){
-                drive(0, leftSpeed, 0, rightSpeed);
-                interval = (millis() - start)/1000;
-            }
-            currentCollisionState = driveStraight;
-            break;
-        
-        case driveStraight:
-            leftMidVal = digitalRead(LEFT_MID);
-            midMidVal = digitalRead(MID_MID);
-            rightMidVal = digitalRead(RIGHT_MID);
-            leftSpeed = targetSpeed;
-            rightSpeed = targetSpeed;
-            while (!(leftMidVal == ON || midMidVal == ON || rightMidVal == ON)){ //while both are not high!
-                drive(0, leftSpeed, 0, rightSpeed);
-                leftMidVal = digitalRead(LEFT_MID);
-                midMidVal = digitalRead(MID_MID);
-                rightMidVal = digitalRead(RIGHT_MID);
-            }
-            currentCollisionState = lastTurn;
-            
-            break;
+  numberOfTurns++;
 
-        case lastTurn:
-            //turn 90* again and then follow tape regularly (leave this function)
-            leftSpeed = targetSpeed + p_i_d.output_pid(turn_error);
-            rightSpeed = targetSpeed + p_i_d.output_pid(-turn_error);
-            start = millis();
-            interval = (millis() - start)/1000;
-            while (interval != QUARTER_TURN_TIME){
-                drive(0, leftSpeed, 0, rightSpeed);
-                interval = (millis() - start)/1000;
-            }
-            collision = 1;
-            drive(0,0,0,0);
-            currentCollisionState = firstTurn; 
-            break;     
-    }
+  switch( currentCollisionState ){
+    case firstTurn:
+
+      // leftSpeed = targetSpeed + p_i_d.output_pid(error);
+      // rightSpeed = targetSpeed + p_i_d.output_pid(-(error+2));
+      collisionStartTime = millis(); 
+      collisionTimeInterval = (millis() - collisionStartTime)/1000;
+      while (collisionTimeInterval < QUARTER_TURN_TIME){
+        if (role == THANOS)
+          drive(0, collisionSpeed, collisionSpeed, 0);
+        else if (role == METHANOS)
+          drive(collisionSpeed, 0, 0, collisionSpeed);
+
+        collisionTimeInterval = (millis() - collisionStartTime)/1000;
+      }
+      currentCollisionState = driveStraight;
+      break;
+      
+    case driveStraight:
+      leftMidVal = digitalRead(LEFT_MID);
+      midMidVal = digitalRead(MID_MID);
+      rightMidVal = digitalRead(RIGHT_MID);
+
+      while (!(leftMidVal == ON && midMidVal == ON && rightMidVal == ON)){ //while both are not high!
+          drive(0, collisionSpeed, 0, collisionSpeed);
+          leftMidVal = digitalRead(LEFT_MID);
+          midMidVal = digitalRead(MID_MID);
+          rightMidVal = digitalRead(RIGHT_MID);
+      }
+      currentCollisionState = lastTurn;
+      break;
+
+    case lastTurn:
+
+      currentCollisionState = firstTurn; 
+      
+      if (role == THANOS) 
+        currentPidState = turnRight;
+      else if (role == METHANOS) 
+       currentPidState = turnLeft;
+
+      pidStateMachine();
+     /* midMidVal = 0;
+
+      while (!(leftMidVal == OFF && midMidVal == ON && rightMidVal == OFF)){ //while both are not high!
+ 
+        if (role == THANOS) 
+          drive(0, collisionSpeed/2, collisionSpeed/2, 0);
+        else if (role == METHANOS) 
+          drive(collisionSpeed/2, 0, 0, collisionSpeed/2);
+
+        leftMidVal = digitalRead(LEFT_MID);
+        midMidVal = digitalRead(MID_MID);
+        rightMidVal = digitalRead(RIGHT_MID);        
+      }
+
+      currentPidState = onTape;
+      drive(0,0,0,0);*/
+      
+      // display.clearDisplay();
+      // display.setCursor(5, 40);
+      // display.println("I read high");
+      // display.display();
+      // // drive(0,0,0,0);
+
+      // delay(10000);
+      break;     
+
+  }
 }
   
 
@@ -542,7 +560,7 @@ void pidStateMachine() {
   //   break; 
 
   default :
-    drive(0, 0, 0, 0); //spin for 5 seconds
+    drive(0, 0, 0, 0);
     delay(5000); // this should never happen...
     break; 
 
