@@ -13,10 +13,10 @@ IRdecision::IRdecision(int pin_left, int pin_center, int pin_right, int set_mode
     
 }
 
-void IRdecision::setMode(int set_mode) {
-    mode = set_mode;
+IRdecision::IRdecision()
+{
+    
 }
-
 
 int IRdecision::strongest_signal(){
     left.corr();

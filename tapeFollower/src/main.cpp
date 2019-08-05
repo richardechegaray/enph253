@@ -35,11 +35,11 @@ Adafruit_SSD1306 display(OLED_RESET);
 #define RX3 PB11
 HardwareSerial Serial3 = HardwareSerial(RX3, TX3);
 
-#define KP_METER PA5
-#define KD_METER PA4
-#define KP_KD_BUTTON PB8
-//first switch b4, SWIRCH 2 = b5
+#define KP_METER PA4
+#define KD_METER PA5
+#define RESET_BUTTON PB8
 #define MODE_SWITCH PB5
+#define MOOD_SWITCH PB4
 
 #define RAMP_TIME 15
 #define COLLECT_TIME 29
@@ -59,13 +59,12 @@ float targetIrSpeed = 22*period/100;  //25
 float targetIrSpeedPlus = 27*period/100;  //30
 float targetIrSpeedMinus = 17*period/100;  //20
 
-float targetSpeed = 50*period/100;
+float targetSpeed = 60*period/100;
 float leftSpeed = targetSpeed;
 float rightSpeed = targetSpeed;
 
 float irStartThreshold = 900;
-float midThreshold = 1000; //past columns
-float closeThreshold = 1550;  //quite close
+float closeThreshold = 1000; //past columns
 
 float midIntensity = -1;
 int highestPin = -1;
@@ -97,8 +96,11 @@ pid p_i_d;
 int role;
 #define THANOS 0
 #define METHANOS 1
+// IRdecision* decisionThing;
+// IRdecision decision = IRdecision(LEFT_IR, MID_IR, RIGHT_IR, 1); // default is 1kHz but we set this to the correct value in setup
+IRdecision decision; // default is 1kHz but we set this to the correct value in setup
 
-IRdecision decision = IRdecision(LEFT_IR, MID_IR, RIGHT_IR, 1); // default is 1kHz but we set this to the correct value in setup
+// IRdecision decision10 = IRdecision(LEFT_IR, MID_IR, RIGHT_IR, 10); // default is 1kHz but we set this to the correct value in setup
 
 float speedCapOff(float speed); //add for all functions
 pidState getPidState(int farLeft, int stoneLeft, int leftMid, int midMid, int rightMid, int stoneRight, int farRight);
@@ -141,29 +143,34 @@ void setup() {
     // irDefined = false;
     stonePart = false;
 
-    // display.begin(SSD1306_SWITCHCAPVCC, 0x3C); // OLED Display
-    // display.clearDisplay();
-    // display.setTextColor(WHITE);
-    // display.setFont(&FreeMono9pt7b);
+    display.begin(SSD1306_SWITCHCAPVCC, 0x3C); // OLED Display
+    display.clearDisplay();
+    display.setTextColor(WHITE);
+    display.setFont(&FreeMono9pt7b);
 
-    // if (digitalRead(MODE_SWITCH)) {
-    //   role = METHANOS; 
-    //   Serial3.write("m");
-    //   decision.setMode(1);
-    // } else {
-    //   role = THANOS;
-    //   Serial3.write("t");
-    //   decision.setMode(10);
-    // }
-    role = THANOS;
-    decision.setMode(10);
+    if (digitalRead(MODE_SWITCH)) {
+      role = METHANOS; 
+      decision = IRdecision(LEFT_IR, MID_IR, RIGHT_IR, 1); // default is 1kHz but we set this to the correct value in setup
+      irStartThreshold = 900;
+      closeThreshold = 1000; //past columns
+      // Serial3.write("m");
+    } else {
+      role = THANOS;
+      decision = IRdecision(LEFT_IR, MID_IR, RIGHT_IR, 10); // default is 1kHz but we set this to the correct value in setup
+      irStartThreshold = 150;
+      closeThreshold = 700; //past columns   
+      // Serial3.write("t");
+    }
 
-    // updateDisplay();
+    updateDisplay();
     initialTime = millis();
 }
 
+//IR
 /*void loop() {
-  float number =    .strongest_signal();
+  // if (role = THANOS)
+    float number = decision.strongest_signal();
+  // else if (role )
   if (number == LEFT_IR) 
     Serial.println("Left!!!");
   else if (number == MID_IR) 
@@ -184,47 +191,76 @@ void setup() {
   Serial.print("Right: ");
   Serial.println(rightIntensity);
   Serial.print("Max correlation pin: ");
-  delay(1000);
+  delay(500);
+
+  display.clearDisplay();
+  display.setCursor(5, 20);
+  display.print("Left: ");
+  display.println(leftIntensity);
+  display.setCursor(5, 40);
+  display.print("Mid: ");
+  display.println(midIntensity);
+  display.setCursor(5, 60);
+  display.print("Right: ");
+  display.println(rightIntensity);
+  display.display();
 }*/
 
-/*void loop() {
-  farLeftVal = digitalRead(FAR_LEFT);
-  stoneLeftVal = digitalRead(STONE_LEFT);
-  leftMidVal = digitalRead(LEFT_MID);
-  midMidVal = digitalRead(MID_MID);
-  rightMidVal = digitalRead(RIGHT_MID);
-  stoneRightVal = digitalRead(STONE_RIGHT);
-  farRightVal = digitalRead(FAR_RIGHT);
+//QRDs
+// void loop() {
+//   farLeftVal = digitalRead(FAR_LEFT);
+//   stoneLeftVal = digitalRead(STONE_LEFT);
+//   leftMidVal = digitalRead(LEFT_MID);
+//   midMidVal = digitalRead(MID_MID);
+//   rightMidVal = digitalRead(RIGHT_MID);
+//   stoneRightVal = digitalRead(STONE_RIGHT);
+//   farRightVal = digitalRead(FAR_RIGHT);
 
-  Serial.print(farLeftVal);
-  Serial.print(" ");
-  Serial.print(stoneLeftVal);
-  Serial.print(" ");
-  Serial.print(leftMidVal);
-  Serial.print(midMidVal);
-  Serial.print(rightMidVal);
-  Serial.print(" ");
-  Serial.print(stoneRightVal);
-  Serial.print(" ");
-  Serial.println(farRightVal);
+//   Serial.print(farLeftVal);
+//   Serial.print(" ");
+//   Serial.print(stoneLeftVal);
+//   Serial.print(" ");
+//   Serial.print(leftMidVal);
+//   Serial.print(midMidVal);
+//   Serial.print(rightMidVal);
+//   Serial.print(" ");
+//   Serial.print(stoneRightVal);
+//   Serial.print(" ");
+//   Serial.println(farRightVal);
 
-  delay(200);
-}*/
+//   display.clearDisplay();
+//   display.setCursor(5, 20);
+//   display.print(farLeftVal);
+//   display.print(" ");
+//   display.print(stoneLeftVal);
+//   display.print(" ");
+//   display.print(leftMidVal);
+//   display.print(midMidVal);
+//   display.print(rightMidVal);
+//   display.print(" ");
+//   display.print(stoneRightVal);
+//   display.print(" ");
+//   display.println(farRightVal);
+//   display.setCursor(5, 40);
+//   currentPidState = getPidState(farLeftVal, stoneLeftVal, leftMidVal, midMidVal, rightMidVal, stoneRightVal, farRightVal);
+//   display.print(currentPidState);
+//   display.display();
+//   delay(200);
+// }
 
 
- void loop() {  // SLAVE
+void loop() {  // SLAVE
   timeElapsed = (millis() - initialTime)/1000; // in seconds
 
-  // if (timeElapsed < RAMP_TIME)
-  //   currentMajorState = upRamp;
-  // else if (timeElapsed < COLLECT_TIME)
-  //   currentMajorState = collectPlushie;
-  // else if (stonePart == true)
-  //   currentMajorState = stones;
-  // else 
-  //   currentMajorState = depositPlushie;
+  if (timeElapsed < RAMP_TIME)
+    currentMajorState = upRamp;
+  else if (timeElapsed < COLLECT_TIME)
+    currentMajorState = collectPlushie;
+  else if (stonePart == true)
+    currentMajorState = stones;
+  else 
+    currentMajorState = depositPlushie;
 
-  currentMajorState = collectPlushie;
   
   if ((numberOfTurns > 0) && (currentMajorState == upRamp)){
     //Serial.println(collectPlushie);
@@ -262,7 +298,7 @@ void setup() {
       break;
   }
   previousMajorState = currentMajorState;
- }
+}
  
 
 //increase the first turn left delay
@@ -430,15 +466,15 @@ void pidStateMachine() {
       delay(700);
     break;
 
-  case stoneOnRight : //not doing yet
-    drive(0,0,0,0);
-    delay(5000);
-    break; 
+  // case stoneOnRight : //not doing yet
+  //   drive(0,0,0,0);
+  //   delay(5000);
+  //   break; 
 
-  case stoneOnLeft : //not doing yet
-    drive(0,0,0,0);
-    delay(5000);
-    break; 
+  // case stoneOnLeft : //not doing yet
+  //   drive(0,0,0,0);
+  //   delay(5000);
+  //   break; 
 
   default :
     drive(0, 0, 0, 0); //spin for 5 seconds
