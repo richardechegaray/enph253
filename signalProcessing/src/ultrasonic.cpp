@@ -46,26 +46,31 @@ bool ultrasonic::is_there_obj(int range){
     }
 }
 
-enum ultrasonic::location ultrasonic::loc_of_obj(int range){
+enum ultrasonic::location ultrasonic::loc_of_obj_collection(int range, bool role){
     //left ---------->     right
-    int angle_range[] = {CENTER+60, CENTER+40, CENTER+20, CENTER, CENTER-20, CENTER-40, CENTER-60};
-    //int angle_range [] = {CENTER+60, CENTER+40, CENTER+20, CENTER}; //thanos
+    int angle_range[] = {CENTER+60, CENTER+40, CENTER+20, CENTER, CENTER-20, CENTER-40, CENTER-60};  
+    int start;
+    int end;
+    if(role){
+        //methanos: scan right
+        start = 3;
+        end = 6;        
+    } else{
+        start = 0;
+        end = 3;
+    }
     int obj_detected [] = {0, 0, 0, 0, 0, 0, 0};
 
-    for (int i = 0; i < sizeof(angle_range)/sizeof(int); i++){
+    for (int i = start; i <= end; i++){
         myservo.write(angle_range[i]);
         if (i == 0){
-            delay(100);
+            delay(250);
         }
         if (is_there_obj(range)){
             obj_detected[i] = 1;
         }
         delay(200);
     }
-    // for(int i = 0; i < sizeof(obj_detected)/sizeof(int); i++){
-    //     Serial.print(obj_detected[i]);
-    // }
-    // Serial.println();
     if(obj_detected[3]){
         return center;
     } else if((obj_detected[1] || obj_detected[2]) && (obj_detected[4] || obj_detected[5])){
@@ -80,41 +85,37 @@ enum ultrasonic::location ultrasonic::loc_of_obj(int range){
         return right;
     } else{
         return none;
-    }
-    // zero = obj_detected[0];
-    // one = obj_detected[1];
-    // two = obj_detected[2];
-    // three = obj_detected[3];
-    // four = obj_detected[4];
-    // five = obj_detected[5];
-    // six = obj_detected[6];
+    }    
+}
 
-    /*if (obj_detected[0] || obj_detected[1]){
-        loc = left;
-        if ((obj_detected[2]) || (obj_detected[3]) || (obj_detected[4])){
-            loc = left_center;
-            if ((obj_detected[5] || obj_detected[6])){
-                loc = all;
-            }
+enum ultrasonic::location ultrasonic::loc_of_obj_deposit(int range){
+    int angle_range[] = {CENTER+20, CENTER, CENTER-20};
+    int obj_detected [] = {0, 0, 0};
+    for (int i = 0; i < 3; i++){
+        myservo.write(angle_range[i]);
+        if (i == 0){
+            delay(250);
         }
-        else if ((obj_detected[5] || obj_detected[6])){
-            loc = left_right;
+        if (is_there_obj(range)){
+            obj_detected[i] = 1;
         }
+        delay(200);
     }
-    else if ((obj_detected[2]) || (obj_detected[3]) || (obj_detected[4])){
-        loc = center;
-        if ((obj_detected[5] || obj_detected[6])){
-            loc = center_right;
-        }
+    if(obj_detected[1]){
+        return center;    
+    } else if(obj_detected[0] && obj_detected[1]){
+        return left_center;
+    } else if(obj_detected[1] && obj_detected[2]){
+        return center_right;
+    } else if(obj_detected[0]){
+        return left;
+    } else if(obj_detected[2]){
+        return right;
+    } else if(obj_detected[0] && obj_detected[2]){
+        return left_right;
+    } else{
+        return none;
     }
-    else if ((obj_detected[5] || obj_detected[6])){
-        loc = right;
-    }
-    else {
-        loc = none;
-    }
-
-    return loc;*/
 }
 
 /*
@@ -174,3 +175,28 @@ enum ultrasonic::points ultrasonic::checkLocation(int range){
     }
     return lr0;
 }*/
+
+/*if (obj_detected[0] || obj_detected[1]){
+        loc = left;
+        if ((obj_detected[2]) || (obj_detected[3]) || (obj_detected[4])){
+            loc = left_center;
+            if ((obj_detected[5] || obj_detected[6])){
+                loc = all;
+            }
+        }
+        else if ((obj_detected[5] || obj_detected[6])){
+            loc = left_right;
+        }
+    }
+    else if ((obj_detected[2]) || (obj_detected[3]) || (obj_detected[4])){
+        loc = center;
+        if ((obj_detected[5] || obj_detected[6])){
+            loc = center_right;
+        }
+    }
+    else if ((obj_detected[5] || obj_detected[6])){
+        loc = right;
+    }
+    else {
+        loc = none;
+    }*/
