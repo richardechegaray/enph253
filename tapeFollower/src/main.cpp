@@ -255,29 +255,9 @@ void setup() {
   delay(200);
 }*/
 
-void loop() {
-  timeElapsed = (millis() - initialTime)/1000; // in seconds
-
-  if (timeElapsed < 5)
-    currentMajorState = upRamp;
-  else if (timeElapsed < 10)
-    currentMajorState = collectPlushie;
-  else if (timeElapsed < 15)
-    currentMajorState = depositPlushie;
-  else 
-    currentMajorState = stones;
-  
-  majState = (uint8_t) currentMajorState;  
-  if (role == METHANOS)
-    majState |= 1UL << 4;  //set this to high if we are thanos
-  else if (role == THANOS)
-    majState &= ~(1UL << 4); //clears 5th bit
-
-  Serial3.write(majState);
-}
 
 
- /*void loop() {  // SLAVE
+ void loop() {  // SLAVE
   timeElapsed = (millis() - initialTime)/1000; // in seconds
 
   if (timeElapsed < RAMP_TIME)
@@ -292,13 +272,18 @@ void loop() {
   // if ((timeElapsed > 20) && (timeElapsed < 22))
   //   collisionStateMachine();
 
-  if ((numberOfTurns > 0) && (currentMajorState == upRamp)){
-    //Serial.println(collectPlushie);
-    Serial3.write((int)collectPlushie);
-  } else {
-    //Serial.println((int)currentMajorState);
-    Serial3.write((int)currentMajorState);
-  }
+  if ((numberOfTurns > 0) && (currentMajorState == upRamp))
+    majState  = (int)collectPlushie;
+  else 
+    majState = (int)currentMajorState;
+  
+  if (role == METHANOS)
+    majState |= 1UL << 4;  //set 5th bit to high if we are methanos
+  else if (role == THANOS)
+    majState &= ~(1UL << 4); //clears 5th bit if we are thanos
+
+  Serial3.write(majState);
+  
   
   farLeftVal = digitalRead(FAR_LEFT);
   stoneLeftVal = digitalRead(STONE_LEFT);
@@ -340,7 +325,7 @@ void loop() {
       break;
   }
    previousMajorState = currentMajorState;
- }*/
+ }
   
 
 //increase the first turn left delay
