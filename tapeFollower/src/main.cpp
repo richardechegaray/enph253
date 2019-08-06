@@ -54,6 +54,8 @@ float timeElapsed;
 float collisionStartTime;   
 float collisionTimeInterval;
 
+int isThereCollision;
+
 float spinSpeed = 22*period/100; //make sure this isnt too fast, 20 is too slow
 float targetIrSpeed = 22*period/100;  //25
 float targetIrSpeedPlus = 27*period/100;  //30
@@ -83,6 +85,7 @@ bool stonePart;
 
 float error = 0.0;
 int numberOfTurns;
+uint8_t majState;
 
 enum majorState { upRamp, collectPlushie, depositPlushie, stones, shutDown } ;
 enum pidState { onTape, offOnOn, offOffOn, onOnOff, onOffOff, white, turnLeft, turnRight } ;
@@ -144,6 +147,7 @@ void setup() {
     previousPidState = onTape;
     currentIrState = initialSpin;
     currentMajorState = upRamp;
+    isThereCollision = OFF;
     previousMajorState = shutDown; //this cannot be initialized as upRamp because in the first run we need it to be different than currentMajorState for it to be communicated
     // irDefined = false;
     stonePart = false;
@@ -159,24 +163,21 @@ void setup() {
       decision = IRdecision(LEFT_IR, MID_IR, RIGHT_IR, 1); // default is 1kHz but we set this to the correct value in setup
       irStartThreshold = 900;
       closeThreshold = 1000; //past columns
-      // Serial3.write("m");
     } else {
       role = THANOS;
       decision = IRdecision(LEFT_IR, MID_IR, RIGHT_IR, 10); // default is 1kHz but we set this to the correct value in setup
       irStartThreshold = 150;
       closeThreshold = 700; //past columns   
-      // Serial3.write("t");
     }
-
+    
+    majState = 0;
     updateDisplay();
     initialTime = millis();
 }
 
 //IR
 /*void loop() {
-  // if (role = THANOS)
     float number = decision.strongest_signal();
-  // else if (role )
   if (number == LEFT_IR) 
     Serial.println("Left!!!");
   else if (number == MID_IR) 
@@ -254,8 +255,29 @@ void setup() {
   delay(200);
 }*/
 
+void loop() {
+  timeElapsed = (millis() - initialTime)/1000; // in seconds
 
- void loop() {  // SLAVE
+  if (timeElapsed < 5)
+    currentMajorState = upRamp;
+  else if (timeElapsed < 10)
+    currentMajorState = collectPlushie;
+  else if (timeElapsed < 15)
+    currentMajorState = depositPlushie;
+  else 
+    currentMajorState = stones;
+  
+  majState = (uint8_t) currentMajorState;  
+  if (role == METHANOS)
+    majState |= 1UL << 4;  //set this to high if we are thanos
+  else if (role == THANOS)
+    majState &= ~(1UL << 4); //clears 5th bit
+
+  Serial3.write(majState);
+}
+
+
+ /*void loop() {  // SLAVE
   timeElapsed = (millis() - initialTime)/1000; // in seconds
 
   if (timeElapsed < RAMP_TIME)
@@ -267,8 +289,8 @@ void setup() {
   else 
     currentMajorState = depositPlushie;
 
-  if ((timeElapsed > 20) && (timeElapsed < 22))
-    collisionStateMachine();
+  // if ((timeElapsed > 20) && (timeElapsed < 22))
+  //   collisionStateMachine();
 
   if ((numberOfTurns > 0) && (currentMajorState == upRamp)){
     //Serial.println(collectPlushie);
@@ -293,11 +315,23 @@ void setup() {
       break;
 
     case collectPlushie:
+      isThereCollision = Serial3.read();
+      if (isThereCollision) {
+        collisionStateMachine();
+        isThereCollision = OFF;
+        break;
+      }
       currentPidState = getPidState(farLeftVal, stoneLeftVal, leftMidVal, midMidVal, rightMidVal, stoneRightVal, farRightVal);
       pidStateMachine();
       break;
 
     case depositPlushie:
+      isThereCollision = Serial3.read();
+      if (isThereCollision) {
+        collisionStateMachine();
+        isThereCollision = OFF;
+        break;
+      }
       irStateMachine();
       break;
 
@@ -306,51 +340,7 @@ void setup() {
       break;
   }
    previousMajorState = currentMajorState;
- }
-
-void collisionStateMachine() {
-  numberOfTurns++;
-
-  switch( currentCollisionState ){
-    case firstTurn:
-      collisionStartTime = millis(); 
-      collisionTimeInterval = (millis() - collisionStartTime)/1000;
-      while (collisionTimeInterval < QUARTER_TURN_TIME){
-        if (role == THANOS)
-          drive(0, collisionSpeed, collisionSpeed, 0); //drive cw
-        else if (role == METHANOS)
-          drive(collisionSpeed, 0, 0, collisionSpeed); //drive ccw
-
-        collisionTimeInterval = (millis() - collisionStartTime)/1000;
-      }
-      currentCollisionState = driveStraight;
-      break;
-      
-    case driveStraight:
-      leftMidVal = digitalRead(LEFT_MID);
-      midMidVal = digitalRead(MID_MID);
-      rightMidVal = digitalRead(RIGHT_MID);
-
-      while (!(leftMidVal == ON && midMidVal == ON && rightMidVal == ON)){ //while both are not high!
-          drive(0, collisionSpeed, 0, collisionSpeed);
-          leftMidVal = digitalRead(LEFT_MID);
-          midMidVal = digitalRead(MID_MID);
-          rightMidVal = digitalRead(RIGHT_MID);
-      }
-      currentCollisionState = lastTurn;
-      break;
-
-    case lastTurn:
-      if (role == THANOS) 
-        currentPidState = turnRight;
-      else if (role == METHANOS) 
-        currentPidState = turnLeft;
-      
-      currentCollisionState = firstTurn; 
-      pidStateMachine();
-      break;     
-  }
-}
+ }*/
   
 
 //increase the first turn left delay
@@ -656,6 +646,57 @@ void drive(float bwLeft, float fwLeft, float bwRight, float fwRight) { // DO NOT
   pwm_start(LEFT_MOTOR_FW, clockFreq, period, fwLeft, 0); 
   pwm_start(RIGHT_MOTOR_BW, clockFreq, period, bwRight, 0); 
   pwm_start(RIGHT_MOTOR_FW, clockFreq, period, fwRight, 0); 
+}
+
+void collisionStateMachine() {
+  numberOfTurns++;
+
+  switch( currentCollisionState ){
+    case firstTurn:
+      collisionStartTime = millis(); 
+      collisionTimeInterval = (millis() - collisionStartTime)/1000;
+      while (collisionTimeInterval < QUARTER_TURN_TIME){
+        if (role == THANOS)
+          drive(0, collisionSpeed, collisionSpeed, 0); //drive cw
+        else if (role == METHANOS)
+          drive(collisionSpeed, 0, 0, collisionSpeed); //drive ccw
+
+        collisionTimeInterval = (millis() - collisionStartTime)/1000;
+      }
+      currentCollisionState = driveStraight;
+      break;
+      
+    case driveStraight:
+      leftMidVal = digitalRead(LEFT_MID);
+      midMidVal = digitalRead(MID_MID);
+      rightMidVal = digitalRead(RIGHT_MID);
+
+      // while (!(leftMidVal == ON && midMidVal == ON && rightMidVal == ON)){ //while both are not high!
+      while(!(leftMidVal == ON && midMidVal == ON && rightMidVal == ON))  {
+        drive(0, collisionSpeed, 0, collisionSpeed);
+        leftMidVal = digitalRead(LEFT_MID);
+        midMidVal = digitalRead(MID_MID);
+        rightMidVal = digitalRead(RIGHT_MID);
+        if ((leftMidVal == ON) && (midMidVal == ON)) {
+          rightMidVal = ON;
+        }
+        else if ((rightMidVal == ON) && (midMidVal == ON)) {
+          leftMidVal = ON;
+        }
+      }
+      currentCollisionState = lastTurn;
+      break;
+
+    case lastTurn:
+      if (role == THANOS) 
+        currentPidState = turnRight;
+      else if (role == METHANOS) 
+        currentPidState = turnLeft;
+      
+      currentCollisionState = firstTurn; 
+      pidStateMachine();
+      break;     
+  }
 }
 
 //modular
