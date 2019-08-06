@@ -86,7 +86,7 @@ int numberOfTurns;
 
 enum majorState { upRamp, collectPlushie, depositPlushie, stones, shutDown } ;
 enum pidState { onTape, offOnOn, offOffOn, onOnOff, onOffOff, white, turnLeft, turnRight } ;
-enum irState { initialSpin, drivingFar, drivingClose, /*avoid,*/ stop} ;
+enum irState { initialSpin, drivingFar, drivingClose, adjust, stop } ;
 enum collisionState { firstTurn, driveStraight, lastTurn } ;
 //enum commsMap {thanos, methanos, upRamp, collectPlushie, depositPlushie, stones, shutDown, firstTurnColl, driveStraightColl, lastTurnColl};
 
@@ -308,22 +308,18 @@ void setup() {
    previousMajorState = currentMajorState;
  }
 
-void collisionStateMachine(){
-
+void collisionStateMachine() {
   numberOfTurns++;
 
   switch( currentCollisionState ){
     case firstTurn:
-
-      // leftSpeed = targetSpeed + p_i_d.output_pid(error);
-      // rightSpeed = targetSpeed + p_i_d.output_pid(-(error+2));
       collisionStartTime = millis(); 
       collisionTimeInterval = (millis() - collisionStartTime)/1000;
       while (collisionTimeInterval < QUARTER_TURN_TIME){
         if (role == THANOS)
-          drive(0, collisionSpeed, collisionSpeed, 0);
+          drive(0, collisionSpeed, collisionSpeed, 0); //drive cw
         else if (role == METHANOS)
-          drive(collisionSpeed, 0, 0, collisionSpeed);
+          drive(collisionSpeed, 0, 0, collisionSpeed); //drive ccw
 
         collisionTimeInterval = (millis() - collisionStartTime)/1000;
       }
@@ -345,41 +341,14 @@ void collisionStateMachine(){
       break;
 
     case lastTurn:
-
-      currentCollisionState = firstTurn; 
-      
       if (role == THANOS) 
         currentPidState = turnRight;
       else if (role == METHANOS) 
-       currentPidState = turnLeft;
-
-      pidStateMachine();
-     /* midMidVal = 0;
-
-      while (!(leftMidVal == OFF && midMidVal == ON && rightMidVal == OFF)){ //while both are not high!
- 
-        if (role == THANOS) 
-          drive(0, collisionSpeed/2, collisionSpeed/2, 0);
-        else if (role == METHANOS) 
-          drive(collisionSpeed/2, 0, 0, collisionSpeed/2);
-
-        leftMidVal = digitalRead(LEFT_MID);
-        midMidVal = digitalRead(MID_MID);
-        rightMidVal = digitalRead(RIGHT_MID);        
-      }
-
-      currentPidState = onTape;
-      drive(0,0,0,0);*/
+        currentPidState = turnLeft;
       
-      // display.clearDisplay();
-      // display.setCursor(5, 40);
-      // display.println("I read high");
-      // display.display();
-      // // drive(0,0,0,0);
-
-      // delay(10000);
+      currentCollisionState = firstTurn; 
+      pidStateMachine();
       break;     
-
   }
 }
   
@@ -626,20 +595,34 @@ void irStateMachine() {
       midIntensity = decision.corrcenter;
 
       farLeftVal = digitalRead(FAR_LEFT);
-      stoneLeftVal = digitalRead(STONE_LEFT);
       leftMidVal = digitalRead(LEFT_MID);
       midMidVal = digitalRead(MID_MID);
       rightMidVal = digitalRead(RIGHT_MID);
-      stoneRightVal = digitalRead(STONE_RIGHT);
       farRightVal = digitalRead(FAR_RIGHT);
 
       if ((farLeftVal == ON) || (leftMidVal  == ON) || (midMidVal  == ON) || (rightMidVal == ON) || (farRightVal == ON)) {
-        currentIrState = stop;
+        currentIrState = adjust;
         break;
       }
       irDrive(currentIrState);
       // displayIR();
       break;    
+
+    case adjust :
+
+      farLeftVal = digitalRead(FAR_LEFT);
+      farRightVal = digitalRead(FAR_RIGHT);
+
+      if ((farLeftVal == ON) && (farRightVal == ON)) {
+        drive(0,0,0,0);
+        currentIrState = stop;
+      }
+      else if (farRightVal == OFF)
+        drive(0, 0, 0, targetIrSpeed);
+      else if (farLeftVal == OFF)
+        drive(0, targetIrSpeed, 0, 0);
+
+      break;
     
     case stop :
       drive(0,0,0,0);
