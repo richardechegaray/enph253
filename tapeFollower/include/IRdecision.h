@@ -4,10 +4,12 @@
 class IRdecision{
     private:
         IRsensor left, center, right;
-        int mode;
         int pinleft, pincenter, pinright;
+        int mode;
+
     public:
         IRdecision(int, int, int, int);
+        IRdecision();
         void setMode(int set_mode);
 
         float corrleft, corrcenter, corrright;
