@@ -29,77 +29,86 @@ void setup() {
   Serial3.begin(9600);
   currentDoorState = doorsOpen;
   counter = 0;
+  side_doors.doorsClose();
 }
 
 void loop() {  
-  if(Serial3.available()){
+  /*if(Serial3.available()){
     currentMajorState = Serial3.read();
     role = (currentMajorState >> 4) & 1U; //checking to see if that bit is high
     if(role){
       role = METHANOS;
+     // Serial.println("m");
       currentMajorState &= ~(1UL << 4); //clears 5th bit
-      Serial.println("m");
     } else{
       role = THANOS;
-      Serial.println("t");
+      //Serial.println("t");
     }
     switch (currentMajorState) {
       case 0: // upRamp
-        //Serial.println("up-ramp");
-        // if(currentDoorState!=doorsClosed){
-        //   side_doors.doorsClose();
-        //   currentDoorState = doorsClosed;
-        // }
+        if(currentDoorState!=doorsClosed){
+          side_doors.doorsClose();
+          currentDoorState = doorsClosed;
+          if(role == METHANOS){
+            Serial.println("m");
+          } else{
+            Serial.println("t");
+          }
+          Serial.println("ramp");
+        }
         break;
 
       case 1: // plushieCollection
-        // #if (role == THANOS)
-        //   if(currentDoorState!=doorsOpen){
-        //     side_doors.doorsOpenT();
-        //     currentDoorState = doorsOpen;
-        //   } 
-        // #elif (role == METHANOS)
-        //   if(currentDoorState!=doorsOpen){
-        //     side_doors.doorsOpenM();
-        //     currentDoorState = doorsOpen;
-        //   }
-        // #endif
-        //Serial.println("collection");
-        ultrasonicStateMachine();
+        if (role == THANOS){
+          if(currentDoorState!=doorsOpen){
+            side_doors.doorsOpenT();
+            currentDoorState = doorsOpen;
+            Serial.println("tcoll");
+          }
+        } else if (role == METHANOS){
+          if(currentDoorState!=doorsOpen){
+            side_doors.doorsOpenM();
+            currentDoorState = doorsOpen;
+            Serial.println("mcoll");
+          }
+        }
+        //ultrasonicStateMachine();
         break;
       
       case 2: // plushieDeposit
-        // if(currentDoorState!=doorsTogether){
-        //     side_doors.doorsTogether();
-        //     currentDoorState = doorsTogether;
-        //   }
-        //Serial.println("deposit");
-        ultrasonicStateMachine();
+        if(currentDoorState!=doorsTogether){
+            side_doors.doorsTogether();
+            currentDoorState = doorsTogether;
+            Serial.println("deposit");
+        }
+        //ultrasonicStateMachine();
         break;
 
       case 3: //stones
-        // if(currentDoorState!=doorsClosed){
-        //   side_doors.doorsWrite(90);
-        //   delay(500);
-        //   side_doors.doorsClose();
-        //   currentDoorState = doorsClosed;
-        // }
-        // break;
-        //Serial.println("stones");
+        if(currentDoorState!=doorsClosed){
+          side_doors.doorsWrite(90);
+          delay(500);
+          side_doors.doorsClose();
+          currentDoorState = doorsClosed;
+          Serial.println("stones");
+        }
         break;
 
       default:
         break;
     } 
-  }
+  }*/
+  //ultrasonicStateMachine();
+  
 }
 
 void ultrasonicStateMachine(){
       if(currentMajorState == 1){
-        loc = ultra.loc_of_obj_collection(RANGE, role);
+        loc = ultra.loc_of_obj_deposit();
       } else if(currentMajorState == 2){
-        loc = ultra.loc_of_obj_deposit(RANGE);
+        loc = ultra.loc_of_obj_deposit();
       }
+      //loc = ultra.loc_of_obj_deposit();
       switch(loc){
        case ultrasonic::left:
           //Serial.println("left");
@@ -129,17 +138,24 @@ void ultrasonicStateMachine(){
         case ultrasonic::none:
           //Serial.println("none");
           //side_doors.doorsWrite(120); //left 120, right 60 (normal plushie collection position!)
-          break; 
+          break;
+        case ultrasonic::all:
+          //counter++;
+          break;
         default:
           //Serial.println("default");   
           break;    
       }
-      if(counter == 3){
+      if(counter == 100){
         counter = 0; 
         Serial3.write(1);
+        //Serial.println("1");
+        delay(5000);
+      } else{
+        //Serial.println("0");
       }
 }
-
+//print to serial which location
 // void calibrateDoors() {
 //   side_doors.doorsClose();
 //   delay(5000);

@@ -1,7 +1,8 @@
 #include <Arduino.h>
 #include <Servo.h>
 
-#define RANGE 50 //cm
+#define MIN_RANGE 30
+#define MAX_RANGE 40 //cm
 
 class ultrasonic{
     private:
@@ -24,11 +25,11 @@ class ultrasonic{
         // returns distance in cm to obstacle
         int get_distance();
         // returns bool if there is obstacle within provided range
-        bool is_there_obj(int);
+        bool is_there_obj(int, int);
         // returns location of object within provided range
         // sweep -30 to 30 degrees
-        enum location loc_of_obj_collection(int, bool);
-        enum location loc_of_obj_deposit(int);
+        enum location loc_of_obj_collection(bool);
+        enum location loc_of_obj_deposit();
 
         //center the servo motor:
         int servo_center(int range);

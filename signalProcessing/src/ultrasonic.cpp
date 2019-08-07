@@ -36,9 +36,9 @@ int ultrasonic::get_distance(){
     return distance;
 }
 
-bool ultrasonic::is_there_obj(int range){
+bool ultrasonic::is_there_obj(int min_range, int max_range){
     int distance_to_obs = get_distance();
-    if (distance_to_obs <= range){
+    if (distance_to_obs < max_range && distance_to_obs > min_range){
         return true;
     }
     else {
@@ -46,7 +46,7 @@ bool ultrasonic::is_there_obj(int range){
     }
 }
 
-enum ultrasonic::location ultrasonic::loc_of_obj_collection(int range, bool role){
+enum ultrasonic::location ultrasonic::loc_of_obj_collection(bool role){
     //left ---------->     right
     int angle_range[] = {CENTER+60, CENTER+40, CENTER+20, CENTER, CENTER-20, CENTER-40, CENTER-60};  
     int start;
@@ -66,7 +66,7 @@ enum ultrasonic::location ultrasonic::loc_of_obj_collection(int range, bool role
         if (i == 0){
             delay(250);
         }
-        if (is_there_obj(range)){
+        if (is_there_obj(MIN_RANGE, MAX_RANGE)){
             obj_detected[i] = 1;
         }
         delay(200);
@@ -88,34 +88,51 @@ enum ultrasonic::location ultrasonic::loc_of_obj_collection(int range, bool role
     }    
 }
 
-enum ultrasonic::location ultrasonic::loc_of_obj_deposit(int range){
-    int angle_range[] = {CENTER+20, CENTER, CENTER-20};
+enum ultrasonic::location ultrasonic::loc_of_obj_deposit(){
+    /*int angle_range[] = {CENTER+45, CENTER, CENTER-45};
     int obj_detected [] = {0, 0, 0};
-    for (int i = 0; i < 3; i++){
+    for (int i = 0; i < sizeof(angle_range)/sizeof(int); i++){
         myservo.write(angle_range[i]);
         if (i == 0){
             delay(250);
         }
-        if (is_there_obj(range)){
+        if (is_there_obj(MIN_RANGE, MAX_RANGE)){
             obj_detected[i] = 1;
         }
-        delay(200);
+        delay(300);
+    }*/
+    myservo.write(CENTER);
+    if(is_there_obj(MIN_RANGE, MAX_RANGE)){
+        //Serial.println("1");
+        return center;
+    } else{
+        //Serial.println("0");
+        return none;
     }
-    if(obj_detected[1]){
-        return center;    
+    // Serial.print(obj_detected[0]);
+    // Serial.print(obj_detected[1]);
+    // Serial.println(obj_detected[2]);
+    // Serial.print(obj_detected[2]);
+    // Serial.print(obj_detected[3]);
+    // Serial.println(obj_detected[4]);
+
+    /*if(obj_detected[0] && obj_detected[1] && obj_detected[2]){
+        return all;
     } else if(obj_detected[0] && obj_detected[1]){
         return left_center;
     } else if(obj_detected[1] && obj_detected[2]){
         return center_right;
+    } else if(obj_detected[0] && obj_detected[2]){
+        return left_right;
+    } else if(obj_detected[1]){
+        return center;    
     } else if(obj_detected[0]){
         return left;
     } else if(obj_detected[2]){
         return right;
-    } else if(obj_detected[0] && obj_detected[2]){
-        return left_right;
     } else{
         return none;
-    }
+    }*/
 }
 
 /*
