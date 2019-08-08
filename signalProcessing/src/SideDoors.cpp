@@ -33,7 +33,7 @@ void SideDoors::doorsClose(){ // close left first
 }
 
 void SideDoors::doorsTogether(){ // close left first
-  left_door_servo.write(180-30);
+  left_door_servo.write(180-50);
   delay(500);
   right_door_servo.write(50);
 }

@@ -19,7 +19,6 @@ HardwareSerial Serial3 = HardwareSerial(RX3, TX3);
 #define THANOS 0
 #define METHANOS 1
 bool role;
-bool mood;
 bool firstLoopDone;
 uint8_t currentMajorState;
 void calibrateDoors();
@@ -43,7 +42,6 @@ void loop() {
     } else{
       role = THANOS;
     }
-    mood = (currentMajorState >> 6) & 1U;
 
     switch (currentMajorState) {
       case 0: // upRamp
@@ -55,24 +53,23 @@ void loop() {
 
       case 1: // plushieCollection
         if(firstLoopDone == true){
-          if(mood == true){
-            if (role == THANOS){
+          if (role == THANOS){
               if(currentDoorState!=doorsOpen){
                 side_doors.doorsOpenT();
+                delay(100);
+                side_doors.leftDoorWrite(38); //close more
+                delay(100);
                 currentDoorState = doorsOpen;
               }
             } else if (role == METHANOS){
               if(currentDoorState!=doorsOpen){
                 side_doors.doorsOpenM();
+                delay(100);
+                side_doors.rightDoorWrite(65); //close more
+                delay(100);
                 currentDoorState = doorsOpen;
-              }
-            } 
-          } else if(mood == false){
-            if(currentDoorState != doorsClosed){
-              side_doors.doorsClose();
-              currentDoorState = doorsClosed;
-            }   
-          }
+              } 
+            }
         } else{
           if (role == THANOS){
             if(currentDoorState!=doorsOpen){
@@ -91,9 +88,9 @@ void loop() {
       case 2: // plushieDeposit
         if(currentDoorState!=doorsTogether){
             side_doors.doorsTogether();
-            currentDoorState = doorsTogether;
+            currentDoorState =  doorsTogether;
+            firstLoopDone = true;
         }
-        firstLoopDone = true;
         break;
 
       case 3: //shut down
