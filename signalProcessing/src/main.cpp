@@ -28,33 +28,25 @@ void setup() {
   Serial.begin(115200);
   Serial3.begin(9600);
   currentDoorState = doorsOpen;
-  counter = 0;
-  side_doors.doorsClose();
+  //currentDoorState = doorsClosed;
+  //counter = 0;
 }
 
 void loop() {  
-  /*if(Serial3.available()){
+  if(Serial3.available()){
     currentMajorState = Serial3.read();
     role = (currentMajorState >> 4) & 1U; //checking to see if that bit is high
     if(role){
       role = METHANOS;
-     // Serial.println("m");
       currentMajorState &= ~(1UL << 4); //clears 5th bit
     } else{
       role = THANOS;
-      //Serial.println("t");
     }
     switch (currentMajorState) {
       case 0: // upRamp
         if(currentDoorState!=doorsClosed){
           side_doors.doorsClose();
           currentDoorState = doorsClosed;
-          if(role == METHANOS){
-            Serial.println("m");
-          } else{
-            Serial.println("t");
-          }
-          Serial.println("ramp");
         }
         break;
 
@@ -63,13 +55,11 @@ void loop() {
           if(currentDoorState!=doorsOpen){
             side_doors.doorsOpenT();
             currentDoorState = doorsOpen;
-            Serial.println("tcoll");
           }
         } else if (role == METHANOS){
           if(currentDoorState!=doorsOpen){
             side_doors.doorsOpenM();
             currentDoorState = doorsOpen;
-            Serial.println("mcoll");
           }
         }
         //ultrasonicStateMachine();
@@ -79,27 +69,32 @@ void loop() {
         if(currentDoorState!=doorsTogether){
             side_doors.doorsTogether();
             currentDoorState = doorsTogether;
-            Serial.println("deposit");
         }
         //ultrasonicStateMachine();
         break;
 
-      case 3: //stones
+      case 3: //shut down
         if(currentDoorState!=doorsClosed){
           side_doors.doorsWrite(90);
           delay(500);
           side_doors.doorsClose();
           currentDoorState = doorsClosed;
-          Serial.println("stones");
+        }
+        break;
+      
+      case 32:
+        if(role == METHANOS){
+          side_doors.rightDoorWrite(45);
+        } else if(role == THANOS){
+          side_doors.leftDoorWrite(60);
         }
         break;
 
       default:
         break;
     } 
-  }*/
-  //ultrasonicStateMachine();
-  
+  }
+  //ultrasonicStateMachine();  
 }
 
 void ultrasonicStateMachine(){
