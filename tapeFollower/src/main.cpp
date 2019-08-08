@@ -43,12 +43,11 @@ HardwareSerial Serial3 = HardwareSerial(RX3, TX3);
 // #define SMALL_COLLECT_TIME 24
 // #define BIG_COLLECT_TIME 8
 #define RAMP_TIME 15
-#define SMALL_TURN_TIME 18.5
-#define SMALL_COLLECT_TIME 24
-#define BIG_COLLECT_TIME 14
+#define SMALL_TURN_TIME 18.3
+#define BIG_COLLECT_TIME 30
 
-#define METHANOS_TURN_TIME 0.8 //for driving past the first 2 pillars, sharp turn
-#define THANOS_TURN_TIME 0.68  // for driving past the first 2 pillars, sharp turn,
+#define METHANOS_TURN_TIME 0.7 //for driving past the first 2 pillars, sharp turn
+#define THANOS_TURN_TIME 0.63  // for driving past the first 2 pillars, sharp turn,
 
 float clockFreq = 100000;
 float period = 1000;
@@ -166,13 +165,15 @@ void setup() {
     if (digitalRead(MODE_SWITCH)) {
       role = METHANOS; 
       decision = IRdecision(LEFT_IR, MID_IR, RIGHT_IR, 1); // default is 1kHz but we set this to the correct value in setup
-      irStartThreshold = 400;
+      irStartThreshold = 200; //400
       closeThreshold = 1200; //past columns
+      #define SMALL_COLLECT_TIME 26
     } else {
       role = THANOS;
       decision = IRdecision(LEFT_IR, MID_IR, RIGHT_IR, 10); // default is 1kHz but we set this to the correct value in setup
       irStartThreshold = 120;
       closeThreshold = 1200; //past columns   
+      #define SMALL_COLLECT_TIME 25
     }
     
     majState = 0;
@@ -251,14 +252,14 @@ void setup() {
 
     case collectPlushie :
       //if ((miniStateDone == true) && (Serial3.available())) { //check if there's a collision in the big loop
-      if (miniStateDone == true) {
-      isThereCollision = Serial3.read();
-        if (isThereCollision == 1) {
-          collisionStateMachine();
-          isThereCollision = 0;
-          break;
-        }
-      }
+      // if (miniStateDone == true) {
+      // isThereCollision = Serial3.read();
+      //   if (isThereCollision == 1) {
+      //     collisionStateMachine();
+      //     isThereCollision = 0;
+      //     break;
+      //   }
+      // }
       currentPidState = getPidState(farLeftVal, stoneLeftVal, leftMidVal, midMidVal, rightMidVal, stoneRightVal, farRightVal);
       pidStateMachine();
       break;
@@ -558,7 +559,7 @@ void irStateMachine() {
       // } 
       // irDrive(currentIrState);
       drive(0, 5*targetIrSpeed/4, 0, 5*targetIrSpeed/4); //used to be targetIrSpeed
-      delay(1500);
+      delay(500);
       currentIrState = drivingClose;
       break;  
 
@@ -631,7 +632,10 @@ void irStateMachine() {
         //drive backwards until we find tape again
         if(role == THANOS){ //robot is picking the wrong path - this is to correct the direction
           drive(0, 0, spinSpeed, 0); // spin CW
-          delay(1300);
+          delay(900); //1300
+        }else if (role == METHANOS) {
+          drive(spinSpeed, 0, 0, 0);
+          delay(200);
         }
         drive(collisionSpeed, 0, collisionSpeed, 0);
         delay(1000);
