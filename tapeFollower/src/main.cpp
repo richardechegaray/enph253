@@ -59,7 +59,7 @@ float collisionTimeInterval;
 
 int isThereCollision;
 
-float spinSpeed = 22*period/100; //make sure this isnt too fast, 20 is too slow
+float spinSpeed = 24*period/100; //make sure this isnt too fast, had 22
 float targetIrSpeed = 22*period/100;  //25
 float targetIrSpeedPlus = 27*period/100;  //30
 float targetIrSpeedMinus = 17*period/100;  //20
@@ -94,7 +94,7 @@ float error = 0.0;
 int numberOfTurns;
 uint8_t majState;
 
-enum majorState { upRamp, collectPlushie, depositPlushie, stones, shutDown } ;
+enum majorState { upRamp, collectPlushie, depositPlushie, shutDown } ;
 enum pidState { onTape, offOnOn, offOffOn, onOnOff, onOffOff, white, turnLeft, turnRight } ;
 enum irState { initialSpin, drivingFar, drivingClose, adjust, stop } ;
 enum collisionState { firstTurn, driveStraight, lastTurn } ;
@@ -179,26 +179,49 @@ void setup() {
 }
 
  void loop(){
-  if(miniStateDone == false){
+
+  if(miniStateDone == false){  //small loop
+    
     timeElapsed = (millis() - initialTime)/1000;
-    if(timeElapsed < RAMP_TIME){
+    if(timeElapsed < RAMP_TIME)
       currentMajorState = upRamp;  
-    } else if(timeElapsed > SMALL_TURN_TIME && timeElapsed < SMALL_TURN_TIME+2){ //CHECK FOR THIS BEFORE TAPE FOLLOWING
+    else if(timeElapsed > SMALL_TURN_TIME && timeElapsed < SMALL_TURN_TIME+2){ //CHECK FOR THIS BEFORE TAPE FOLLOWING
       collisionStateMachine(); //turn, drive straight, turn again, find tape
-    } else if(timeElapsed < SMALL_COLLECT_TIME){
-      currentMajorState = collectPlushie;  //follow tape until we are in a position to look for IR
-    } else if(miniLoopDone == false){
-      currentMajorState = depositPlushie; //deposit small loop plushies, with back-up and find tape
-    }
-  } else{
-    //start the large loop
-    timeElapsed = (millis() - initialTime)/1000; 
-    if(timeElapsed < BIG_COLLECT_TIME){
-      currentMajorState = collectPlushie; //start collecting again
-    } else{
-      currentMajorState = depositPlushie; //deposit big loop plushies, without back-up
+      majState  = (int)collectPlushie;
+      if (role == METHANOS)
+        majState |= 1UL << 4;  //set 5th bit to high if we are methanos
+      else if (role == THANOS)
+        majState &= ~(1UL << 4); //clears 5th bit if we are thanos
+      Serial3.write(majState);
     } 
+    else if(timeElapsed < SMALL_COLLECT_TIME)
+      currentMajorState = collectPlushie;  //follow tape until we are in a position to look for IR
+    else if(miniLoopDone == false)
+      currentMajorState = depositPlushie; //deposit small loop plushies, with back-up and find tape
+    
+  } else if (miniStateDone == true){    //start the large loop
+ 
+    timeElapsed = (millis() - initialTime)/1000; 
+    if(timeElapsed < BIG_COLLECT_TIME)
+      currentMajorState = collectPlushie; //start collecting again
+    else
+      currentMajorState = depositPlushie; //deposit big loop plushies, without back-up
+
+    if (previousMajorState == shutDown)
+      currentMajorState = shutDown;
   }
+
+  ///// COMMUNICATION
+  if ((numberOfTurns > 0) && (currentMajorState == upRamp))
+    majState  = (int)collectPlushie;
+  else 
+    majState = (int)currentMajorState;
+  if (role == METHANOS)
+    majState |= 1UL << 4;  //set 5th bit to high if we are methanos
+  else if (role == THANOS)
+    majState &= ~(1UL << 4); //clears 5th bit if we are thanos
+  Serial3.write(majState);
+
 
   farLeftVal = digitalRead(FAR_LEFT);
   stoneLeftVal = digitalRead(STONE_LEFT);
@@ -209,12 +232,12 @@ void setup() {
   farRightVal = digitalRead(FAR_RIGHT); 
 
   switch ( currentMajorState ) { // state machine
-    case upRamp:
+    case upRamp :
       currentPidState = getPidState(farLeftVal, stoneLeftVal, leftMidVal, midMidVal, rightMidVal, stoneRightVal, farRightVal);
       pidStateMachine();
       break;
 
-    case collectPlushie:
+    case collectPlushie :
       // isThereCollision = Serial3.read();
       // if (isThereCollision == 1) {
       //   collisionStateMachine();
@@ -225,7 +248,7 @@ void setup() {
       pidStateMachine();
       break;
 
-    case depositPlushie:
+    case depositPlushie :
       // isThereCollision = Serial3.read();
       // if (isThereCollision == 1) {
       //   collisionStateMachine();
@@ -233,6 +256,10 @@ void setup() {
       //   break;
       // }
       irStateMachine();
+      break;
+
+      case shutDown :
+      drive(0,0,0,0);
       break;
   }
    previousMajorState = currentMajorState;
@@ -343,113 +370,31 @@ void setup() {
    
 }*/
 
-/*void loop() {  // SLAVE
-  timeElapsed = (millis() - initialTime)/1000; // in seconds
-
-  if (timeElapsed < RAMP_TIME)
-    currentMajorState = upRamp;
-  else if (timeElapsed < COLLECT_TIME)
-    currentMajorState = collectPlushie;
-  else if (stonePart == true)
-    currentMajorState = stones;
-  else 
-    currentMajorState = depositPlushie;
-
-  //if ((timeElapsed > SMALL_LOOP_TIME) && (timeElapsed < SMALL_LOOP_TIME+2))
-  //   collisionStateMachine();
-
-  if ((numberOfTurns > 0) && (currentMajorState == upRamp))
-    majState  = (int)collectPlushie;
-  else 
-    majState = (int)currentMajorState;
-  
-  if (role == METHANOS)
-    majState |= 1UL << 4;  //set 5th bit to high if we are methanos
-  else if (role == THANOS)
-    majState &= ~(1UL << 4); //clears 5th bit if we are thanos
-
-  Serial3.write(majState);
-  
-  
-  farLeftVal = digitalRead(FAR_LEFT);
-  stoneLeftVal = digitalRead(STONE_LEFT);
-  leftMidVal = digitalRead(LEFT_MID);
-  midMidVal = digitalRead(MID_MID);
-  rightMidVal = digitalRead(RIGHT_MID);
-  stoneRightVal = digitalRead(STONE_RIGHT);
-  farRightVal = digitalRead(FAR_RIGHT);
- 
-  switch ( currentMajorState ) { // state machine
-    case upRamp:
-      currentPidState = getPidState(farLeftVal, stoneLeftVal, leftMidVal, midMidVal, rightMidVal, stoneRightVal, farRightVal);
-      pidStateMachine();
-      break;
-
-    case collectPlushie:
-      isThereCollision = Serial3.read();
-      if (isThereCollision == 1) {
-        collisionStateMachine();
-        isThereCollision = OFF;
-        break;
-      }
-      currentPidState = getPidState(farLeftVal, stoneLeftVal, leftMidVal, midMidVal, rightMidVal, stoneRightVal, farRightVal);
-      pidStateMachine();
-      break;
-
-    case depositPlushie:
-      isThereCollision = Serial3.read();
-      if (isThereCollision == 1) {
-        collisionStateMachine();
-        isThereCollision = OFF;
-        break;
-      }
-      irStateMachine();
-      break;
-
-    case stones:
-      drive(0, 0, 0, 0);
-      break;
-  }
-   previousMajorState = currentMajorState;
- }*/  
-
 //increase the first turn left delay
 pidState getPidState(int farLeft, int stoneLeft, int leftMid, int midMid, int rightMid, int stoneRight, int farRight) {
 
   if (role == THANOS) {
-    if (farLeft == ON) {
-      if (currentMajorState == upRamp) { //if its 0 or 1
+    if ((farLeft == ON) && (currentMajorState == upRamp)) {
+      numberOfTurns++;
+      if (numberOfTurns == 1)  //first turn
+        delay(400); //up ramp delay used to be 450
+      return turnLeft;
+    } else if ((currentMajorState == collectPlushie) && (farRight == ON)) {
         numberOfTurns++;
-        if (numberOfTurns == 1)  //first turn
-          delay(400); //up ramp delay used to be 450
-        return turnLeft;
-      }
+      return turnRight; 
     }
-
-    if ( currentMajorState == collectPlushie ) {
-      if (farRight == ON) {
-        numberOfTurns++;
-        return turnRight; 
-      }
-    }
-  } else if (role == METHANOS) {
-    if (farRight == ON) {
-      if (currentMajorState == upRamp) { //if its 0 or 1 //got rid of number of turns <2
-        numberOfTurns++;
-        if (numberOfTurns == 1)  //first turn
-          delay(450); //up ramp delay, 400 at 60 pwm speed, 300 at 50 pwm
-        return turnRight;
-      }
-    }
-
-    if ( currentMajorState == collectPlushie ) {
-      if (farLeft == ON) {
-        numberOfTurns++;
-        return turnLeft; 
-      }
+  } 
+  else if (role == METHANOS) {
+    if ((farRight == ON) && (currentMajorState == upRamp)) { 
+      numberOfTurns++;
+      if (numberOfTurns == 1)  //first turn
+        delay(450); //up ramp delay, 400 at 60 pwm speed, 300 at 50 pwm
+      return turnRight;
+    }  else if ((currentMajorState == collectPlushie) && (farLeft == ON)) {
+      numberOfTurns++;
+      return turnLeft; 
     }
   }
-
 
   if ( (leftMid == OFF) && (midMid == ON) && (rightMid == OFF) )
     return onTape;
@@ -465,7 +410,6 @@ pidState getPidState(int farLeft, int stoneLeft, int leftMid, int midMid, int ri
     return white;
      
 }
-
 
 //modular
 void pidStateMachine() {
@@ -596,7 +540,7 @@ void irStateMachine() {
       // } 
       // irDrive(currentIrState);
       drive(0, targetIrSpeed, 0, targetIrSpeed);
-      delay(3000);
+      delay(1500);
       currentIrState = drivingClose;
       break;  
 
@@ -604,9 +548,9 @@ void irStateMachine() {
       midIntensity = decision.corrcenter;
 
       farLeftVal = digitalRead(FAR_LEFT);
-      leftMidVal = digitalRead(LEFT_MID);
-      midMidVal = digitalRead(MID_MID);
-      rightMidVal = digitalRead(RIGHT_MID);
+      // leftMidVal = digitalRead(LEFT_MID);
+      // midMidVal = digitalRead(MID_MID);
+      // rightMidVal = digitalRead(RIGHT_MID);
       farRightVal = digitalRead(FAR_RIGHT);
 
       if ((farLeftVal == ON) || (farRightVal == ON)) {
@@ -642,10 +586,10 @@ void irStateMachine() {
         time = (millis() - timeOut)/1000;
       }
 
-      if (currentIrState != stop) {
+      if (currentIrState != stop) { //drive forward to get off the tape
         currentIrState = drivingClose;
         drive(0, targetIrSpeed, 0, targetIrSpeed);
-        delay(1000);
+        delay(1000); 
       }
 
       // if ((farLeftVal == ON) && (farRightVal == ON)) {
@@ -664,7 +608,8 @@ void irStateMachine() {
       // if (bigLoop == true) {
       //   currentMajorState = shutDown;
       // }
-      if(miniLoopDone == false){
+      if(miniLoopDone == false) {
+        miniLoopDone = true;
         //drive backwards until we find tape again
         drive(collisionSpeed, 0, collisionSpeed, 0);
         delay(1000);
@@ -678,13 +623,13 @@ void irStateMachine() {
           else if ((rightMidVal == ON) && (midMidVal == ON)) 
             leftMidVal = ON;
         } while(!(leftMidVal == ON && midMidVal == ON && rightMidVal == ON));
-        miniLoopDone = true;
         miniStateDone = true; //to go back to a new timer for the big loop
         currentIrState = initialSpin; //re-start IR mode
         initialTime = millis(); //reset the timer for the big loop
       } 
-      else{
+      else if (miniLoopDone == true) {
         drive(0,0,0,0);
+        currentMajorState = shutDown;
       }
       break;
   }
@@ -718,7 +663,7 @@ void collisionStateMachine() {
   numberOfTurns++;
   if (currentMajorState != depositPlushie) {
     switch( currentCollisionState ){
-      case firstTurn:
+      case firstTurn :        
         collisionStartTime = millis(); 
         collisionTimeInterval = (millis() - collisionStartTime)/1000;
         while (collisionTimeInterval < QUARTER_TURN_TIME) {
@@ -732,10 +677,23 @@ void collisionStateMachine() {
         currentCollisionState = driveStraight;
         break;
           
-      case driveStraight:
+      case driveStraight :
         // drive(collisionSpeed, 0, collisionSpeed, 0);
         // delay(500);
+        timeOut = millis();
+
         do {
+          time = (millis() - timeOut)/1000;
+          if ((time > 0.95) && (time < 1)) {
+            majState = 0;
+            majState |= 1UL << 5;  // = 32, 5th bit
+
+            if (role == METHANOS) 
+              majState |= 1UL << 4;  //set 5th bit to high if we are methanos
+            else if (role == THANOS)
+              majState &= ~(1UL << 4); //clears 5th bit if we are thanos
+            Serial3.write(majState);
+          }
           drive(0, collisionSpeed, 0, collisionSpeed);
           leftMidVal = digitalRead(LEFT_MID);
           midMidVal = digitalRead(MID_MID);
@@ -762,7 +720,7 @@ void collisionStateMachine() {
         currentCollisionState = lastTurn;
         break;
 
-      case lastTurn:
+      case lastTurn :
         // if (role == THANOS) 
         //   currentPidState = turnRight;
         // else if (role == METHANOS) 
@@ -770,15 +728,15 @@ void collisionStateMachine() {
         // pidStateMachine();
         do {
           if (role == THANOS)
-            drive(0, collisionSpeed, collisionSpeed, 0); //drive cw
+            drive(0,  25*period/100, 25*period/100, 0); //drive cw, used to be 50, then 30..
           else if (role == METHANOS)
-            drive(collisionSpeed, 0, 0, collisionSpeed); //drive ccw           
+            drive(25*period/100, 0, 0, 25*period/100); //drive ccw           
           midMidVal = digitalRead(MID_MID);
         } while(!( midMidVal == ON));
 
         currentCollisionState = firstTurn; 
         currentPidState = onTape;
-        if(role == THANOS){
+        if(role == THANOS){   // might want to go back to regular pid  ? ? ?
           previousPidState = turnLeft; //to go back to the tape (it passes the tape)
         } else if(role == METHANOS){
           previousPidState = turnRight;
