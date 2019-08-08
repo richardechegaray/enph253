@@ -33,16 +33,16 @@ void SideDoors::doorsClose(){ // close left first
 }
 
 void SideDoors::doorsTogether(){ // close left first
-  left_door_servo.write(180-70);
+  left_door_servo.write(180-30);
   delay(500);
   right_door_servo.write(50);
 }
 
 //for collecting, 110 and 150 
 void SideDoors::doorsOpenT(){ // left door smaller
-  right_door_servo.write(130);
+  right_door_servo.write(135);
   delay(200);
-  left_door_servo.write(180-90);
+  left_door_servo.write(180-58);
 }
 
 void SideDoors::doorsOpenM(){ // right door smaller

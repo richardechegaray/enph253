@@ -43,12 +43,16 @@ HardwareSerial Serial3 = HardwareSerial(RX3, TX3);
 // #define SMALL_COLLECT_TIME 24
 // #define BIG_COLLECT_TIME 8
 #define RAMP_TIME 15
-#define SMALL_TURN_TIME 18.5
-#define SMALL_COLLECT_TIME 24
+#define SMALL_TURN_TIME_GM 18.3
+#define SMALL_TURN_TIME_BM 14.8
+#define SMALL_COLLECT_TIME_GM 26 //26.8
+#define SMALL_COLLECT_TIME_BM 26.8
 #define BIG_COLLECT_TIME 14
 
-#define METHANOS_TURN_TIME 0.8 //for driving past the first 2 pillars, sharp turn
-#define THANOS_TURN_TIME 0.68  // for driving past the first 2 pillars, sharp turn,
+#define METHANOS_TURN_TIME_GM 0.7 //for driving past the first 2 pillars, sharp turn
+#define THANOS_TURN_TIME_GM 0.7  // for driving past the first 2 pillars, sharp turn
+#define METHANOS_TURN_TIME_BM 0.6
+#define THANOS_TURN_TIME_BM 0.6
 
 float clockFreq = 100000;
 float period = 1000;
@@ -85,8 +89,8 @@ int stoneRightVal = 0;
 int farRightVal = 0;
 
 bool miniLoopDone;
-// bool bigLoop;
 bool miniStateDone;
+bool mood;
 
 float timeOut;
 float time;
@@ -134,8 +138,6 @@ void setup() {
     pinMode(RIGHT_MID, INPUT_PULLUP); 
     pinMode(STONE_RIGHT, INPUT_PULLUP);
     pinMode(FAR_RIGHT, INPUT_PULLUP);
-
-    // pinMode(KP_KD_BUTTON, INPUT_PULLUP);
         
     pinMode(LEFT_MOTOR_FW, OUTPUT);
     pinMode(LEFT_MOTOR_BW, OUTPUT);
@@ -154,8 +156,8 @@ void setup() {
     isThereCollision = OFF;
     previousMajorState = shutDown; //this cannot be initialized as upRamp because in the first run we need it to be different than currentMajorState for it to be communicated
     miniLoopDone = false;
-    // bigLoop = false;
     miniStateDone = false;
+    // mood = false;
     currentCollisionState = firstTurn; 
 
     display.begin(SSD1306_SWITCHCAPVCC, 0x3C); // OLED Display
@@ -174,66 +176,90 @@ void setup() {
       irStartThreshold = 120;
       closeThreshold = 1200; //past columns   
     }
-    
     majState = 0;
+
+    if(digitalRead(MOOD_SWITCH) == ON){
+      mood = true; //happy
+    } else if(digitalRead(MOOD_SWITCH) == OFF){
+      mood = false;
+    }
     updateDisplay();
     initialTime = millis();
 }
+//1:happy
 
  void loop(){
 
-  if(miniStateDone == false){  //small loop
-    
-    timeElapsed = (millis() - initialTime)/1000;
-    if(timeElapsed < RAMP_TIME)
-      currentMajorState = upRamp;  
-    else if(timeElapsed > SMALL_TURN_TIME && timeElapsed < SMALL_TURN_TIME+2){ //CHECK FOR THIS BEFORE TAPE FOLLOWING
-      cutAcross(); //turn, drive straight, turn again, find tape
-      majState  = (int)collectPlushie;
-      if (role == METHANOS)
-        majState |= 1UL << 4;  //set 5th bit to high if we are methanos
-      else if (role == THANOS)
-        majState &= ~(1UL << 4); //clears 5th bit if we are thanos
-      Serial3.write(majState);
-    } 
-    else if(timeElapsed < SMALL_COLLECT_TIME)
-      currentMajorState = collectPlushie;  //follow tape until we are in a position to look for IR
-    else if(miniLoopDone == false)
-      currentMajorState = depositPlushie; //deposit small loop plushies, with back-up and find tape
-    
-  } else if (miniStateDone == true){    //start the large loop
- 
-    timeElapsed = (millis() - initialTime)/1000; 
-    if(timeElapsed < BIG_COLLECT_TIME)
-      currentMajorState = collectPlushie; //start collecting again
-    else
-      currentMajorState = depositPlushie; //deposit big loop plushies, without back-up
+  if (mood = true){ //HAPPY MODE
+     if(miniStateDone == false){  //small loop
+        timeElapsed = (millis() - initialTime)/1000;
+        if(timeElapsed < RAMP_TIME)
+          currentMajorState = upRamp;  
+        else if(timeElapsed > SMALL_TURN_TIME_GM && timeElapsed < SMALL_TURN_TIME_GM+2){ //CHECK FOR THIS BEFORE TAPE FOLLOWING
+          cutAcross(); //turn, drive straight, turn again, find tape
+          majState  = (int)collectPlushie;
+          if (role == METHANOS)
+            majState |= 1UL << 4;  //set 5th bit to high if we are methanos
+          else if (role == THANOS)
+            majState &= ~(1UL << 4); //clears 5th bit if we are thanos
+          Serial3.write(majState);
+        } else if(timeElapsed < SMALL_COLLECT_TIME_GM)
+            currentMajorState = collectPlushie;  //follow tape until we are in a position to look for IR
+        else if(miniLoopDone == false)
+            currentMajorState = depositPlushie; //deposit small loop plushies, with back-up and find tape
+      }
+      else if (miniStateDone == true){    //start the large loop
+        timeElapsed = (millis() - initialTime)/1000; 
+        if(timeElapsed < BIG_COLLECT_TIME)
+          currentMajorState = collectPlushie; //start collecting again
+        else
+          currentMajorState = depositPlushie; //deposit big loop plushies, without back-up
 
-    if (previousMajorState == shutDown)
-      currentMajorState = shutDown;
-  }
+        if (previousMajorState == shutDown)
+          currentMajorState = shutDown;
+      }
+  } else if(mood = false){
+    if(miniStateDone == false){  //small loop
+        timeElapsed = (millis() - initialTime)/1000;
+        if(timeElapsed < RAMP_TIME)
+          currentMajorState = upRamp;  
+        else if(timeElapsed > SMALL_TURN_TIME_BM && timeElapsed < SMALL_TURN_TIME_BM+2){ //CHECK FOR THIS BEFORE TAPE FOLLOWING
+          cutAcross(); //turn, drive straight, turn again, find tape
+          majState  = (int)collectPlushie;
+          if (role == METHANOS)
+            majState |= 1UL << 4;  //set 5th bit to high if we are methanos
+          else if (role == THANOS)
+            majState &= ~(1UL << 4); //clears 5th bit if we are thanos
+          Serial3.write(majState);
+        } else if(timeElapsed < SMALL_COLLECT_TIME_BM)
+            currentMajorState = collectPlushie;  //follow tape until we are in a position to look for IR
+        else if(miniLoopDone == false)
+            currentMajorState = depositPlushie; //deposit small loop plushies, with back-up and find tape
+    }
+    else if (miniStateDone == true){    //start the large loop
+      timeElapsed = (millis() - initialTime)/1000; 
+      if(timeElapsed < BIG_COLLECT_TIME)
+        currentMajorState = collectPlushie; //start collecting again
+      else
+        currentMajorState = depositPlushie; //deposit big loop plushies, without back-up
 
-  ///// COMMUNICATION
+      if (previousMajorState == shutDown)
+        currentMajorState = shutDown;
+    }
+  }   
+
+  // COMMUNICATION
   if ((numberOfTurns > 0) && (currentMajorState == upRamp)) {
-      majState  = (int)collectPlushie;
+    majState  = (int)collectPlushie;
   }
   else 
     majState = (int)currentMajorState;
-  // if ((numberOfTurns > 0) && (numberOfTurns < 2)) {
-  //   majState = 0;
-  //   majState |= 1UL << 6;  // 64, 7th bit high
-  // }
-  // else if (currentMajorState == upRamp) //is it leaving up ramp?
-  //   majState = (int)collectPlushie;
-  // else 
-  //   majState = (int)currentMajorState;
 
   if (role == METHANOS)
     majState |= 1UL << 4;  //set 5th bit to high if we are methanos
   else if (role == THANOS)
     majState &= ~(1UL << 4); //clears 5th bit if we are thanos
   Serial3.write(majState);
-
 
   farLeftVal = digitalRead(FAR_LEFT);
   stoneLeftVal = digitalRead(STONE_LEFT);
@@ -251,14 +277,14 @@ void setup() {
 
     case collectPlushie :
       //if ((miniStateDone == true) && (Serial3.available())) { //check if there's a collision in the big loop
-      if (miniStateDone == true) {
-      isThereCollision = Serial3.read();
-        if (isThereCollision == 1) {
-          collisionStateMachine();
-          isThereCollision = 0;
-          break;
-        }
-      }
+      // if (miniStateDone == true) {
+      // isThereCollision = Serial3.read();
+      //   if (isThereCollision == 1) {
+      //     collisionStateMachine();
+      //     isThereCollision = 0;
+      //     break;
+      //   }
+      // }
       currentPidState = getPidState(farLeftVal, stoneLeftVal, leftMidVal, midMidVal, rightMidVal, stoneRightVal, farRightVal);
       pidStateMachine();
       break;
@@ -648,6 +674,13 @@ void irStateMachine() {
         } while(!(leftMidVal == ON && midMidVal == ON && rightMidVal == ON));
         miniStateDone = true; //to go back to a new timer for the big loop
         currentIrState = initialSpin; //re-start IR mode
+        majState = 0;
+        if (mood == ON)
+          majState |= 1UL << 6; //open the arms
+        else if (mood == OFF)
+          majState &= ~(1UL << 6); //close the arms
+        Serial3.write(majState);
+        majState = 0;
         initialTime = millis(); //reset the timer for the big loop
       } 
       else if (miniLoopDone == true) {
@@ -684,10 +717,19 @@ void drive(float bwLeft, float fwLeft, float bwRight, float fwRight) { // DO NOT
 
 void cutAcross() {
   float turnTime = 0;
-  if (role == THANOS) 
-    turnTime = THANOS_TURN_TIME;
-  else if (role == METHANOS)
-    turnTime = METHANOS_TURN_TIME;
+  // if (role == THANOS) 
+  //   turnTime = THANOS_TURN_TIME;
+  // else if (role == METHANOS)
+  //   turnTime = METHANOS_TURN_TIME;
+  if((role == THANOS) && (mood == true)){
+    turnTime = THANOS_TURN_TIME_GM;
+  } else if((role == THANOS) && (mood == false)){
+    turnTime = THANOS_TURN_TIME_BM;
+  } else if((role == METHANOS) && (mood == true)){
+    turnTime = METHANOS_TURN_TIME_GM;
+  } else if((role == METHANOS) && (mood == false)){
+    turnTime = METHANOS_TURN_TIME_BM;
+  }
 
   numberOfTurns++;
   if (currentMajorState != depositPlushie) {
