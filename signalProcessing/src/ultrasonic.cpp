@@ -6,6 +6,12 @@
 #define SERVO_PIN PB14 // needs to be a digital pin
 #define CENTER 80
 
+/*
+@params: trigger pin, echo pin
+Sets the trigger pin as output and the echo pin as input,
+attaches the servo motor that the ultrasonic sensor will stand on to the corresponding pin,
+and centers the servo motor by writing the measured central angle
+*/
 ultrasonic::ultrasonic(int pin_trig, int pin_echo):
 trig(pin_trig),
 echo(pin_echo)
@@ -17,25 +23,33 @@ echo(pin_echo)
     delay(500);
 }
 
+/*
+Sets the trigger pin to low to clear it,
+sets the trigger pin to high to send out 10microsecond blast,
+capture the duration of the echo pin reading,
+calculates the distance from the duration information
+@return: distance to the object registered by the ultrasonic sensor
+*/
 int ultrasonic::get_distance(){
-    // set trig pin to low to clear it
     digitalWrite(trig, LOW);
     delayMicroseconds(2);
 
-    // set trig pin to high to send out 10microsecond blast
     digitalWrite(trig, HIGH);
     delayMicroseconds(10);
     digitalWrite(trig, LOW);
 
-    // use pulseIn function described in header file to capture duration of the echo pin reading
     duration = pulseIn(echo, HIGH);
 
-    // multiply by CM to convert to centimetres, and divide by two, because burst travels there and back
     distance = duration*CM/2;
 
     return distance;
 }
 
+/*
+@params: distance to start looking for an object, distance to stop looking for an object
+Checks if the distance to an object is within the input range
+@return: true if the distance to the object registered by the ultrasonic sensor is within the input range
+*/
 bool ultrasonic::is_there_obj(int min_range, int max_range){
     int distance_to_obs = get_distance();
     if (distance_to_obs < max_range && distance_to_obs > min_range){
@@ -46,6 +60,11 @@ bool ultrasonic::is_there_obj(int min_range, int max_range){
     }
 }
 
+/*
+@params: the role that the robot is in (thanos=0, methanos=1)
+Sweeps the ultrasonic sensor 60 degrees from left to center if role is thanos, and from center to right if methanos 
+@return: the location of the object registered by the ultrasonic sensor
+*/
 enum ultrasonic::location ultrasonic::loc_of_obj_collection(bool role){
     //left ---------->     right
     int angle_range[] = {CENTER+60, CENTER+40, CENTER+20, CENTER, CENTER-20, CENTER-40, CENTER-60};  
@@ -88,6 +107,10 @@ enum ultrasonic::location ultrasonic::loc_of_obj_collection(bool role){
     }    
 }
 
+/*
+Sweeps the ultrasonic sensor 90 degrees, symmetric to the center
+@return: the location of the object registered by the ultrasonic sensor
+*/
 enum ultrasonic::location ultrasonic::loc_of_obj_deposit(){
     int angle_range[] = {CENTER+45, CENTER, CENTER-45};
     int obj_detected [] = {0, 0, 0};
@@ -204,4 +227,3 @@ enum ultrasonic::points ultrasonic::checkLocation(int range){
         loc = none;
     }
 }*/
-

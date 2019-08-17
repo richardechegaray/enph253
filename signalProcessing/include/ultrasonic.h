@@ -31,7 +31,6 @@ class ultrasonic{
 // trig and echo pins go into digital io
 // trig pin needs to be set to high for 10microseconds, this emits an 8 cycle sonic blast that travels speed of sound 340m/s
 // this is detected by echo pin that will output the time in microseconds that the sound wave travelled
-// 
 
 // info on pulseIn() function:
 // Reads a pulse (either HIGH or LOW) on a pin. 
