@@ -38,7 +38,7 @@ void SideDoors::doorsTogether(){ // close left first
   right_door_servo.write(50);
 }
 
-//for collecting, 110 and 150 
+//for collecting plushies (experimental angle measurements): 
 void SideDoors::doorsOpenT(){ // left door smaller
   right_door_servo.write(135);
   delay(200);

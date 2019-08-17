@@ -19,17 +19,15 @@ HardwareSerial Serial3 = HardwareSerial(RX3, TX3);
 #define THANOS 0
 #define METHANOS 1
 bool role;
-bool firstLoopDone;
 uint8_t currentMajorState;
 void calibrateDoors();
 //void ultrasonicStateMachine();
-int counter;
+//int counter;
 
 void setup() {
   Serial.begin(115200);
   Serial3.begin(9600);
   currentDoorState = doorsOpen;
-  firstLoopDone = false;
 }
 
 void loop() { 
@@ -52,44 +50,23 @@ void loop() {
         break;
 
       case 1: // plushieCollection
-        if(firstLoopDone == true){
-          if (role == THANOS){
-              if(currentDoorState!=doorsOpen){
-                side_doors.doorsOpenT();
-                delay(100);
-                side_doors.leftDoorWrite(38); //close more
-                delay(100);
-                currentDoorState = doorsOpen;
-              }
-            } else if (role == METHANOS){
-              if(currentDoorState!=doorsOpen){
-                side_doors.doorsOpenM();
-                delay(100);
-                side_doors.rightDoorWrite(65); //close more
-                delay(100);
-                currentDoorState = doorsOpen;
-              } 
-            }
-        } else{
-          if (role == THANOS){
-            if(currentDoorState!=doorsOpen){
-              side_doors.doorsOpenT();
-              currentDoorState = doorsOpen;
-            }
-          } else if (role == METHANOS){
-            if(currentDoorState!=doorsOpen){
-              side_doors.doorsOpenM();
-              currentDoorState = doorsOpen;
-            }
+        if (role == THANOS){
+          if(currentDoorState!=doorsOpen){
+            side_doors.doorsOpenT();
+            currentDoorState = doorsOpen;
+          }
+        } else if (role == METHANOS){
+          if(currentDoorState!=doorsOpen){
+            side_doors.doorsOpenM();
+            currentDoorState = doorsOpen;
           }
         }
         break;
       
       case 2: // plushieDeposit
         if(currentDoorState!=doorsTogether){
-            side_doors.doorsTogether();
-            currentDoorState =  doorsTogether;
-            firstLoopDone = true;
+          side_doors.doorsTogether();
+          currentDoorState =  doorsTogether;
         }
         break;
 
@@ -99,14 +76,6 @@ void loop() {
           delay(500);
           side_doors.doorsClose();
           currentDoorState = doorsClosed;
-        }
-        break;
-      
-      case 32:
-        if(role == METHANOS){
-          side_doors.rightDoorWrite(55);
-        } else if(role == THANOS){
-          side_doors.leftDoorWrite(35);
         }
         break;
 
