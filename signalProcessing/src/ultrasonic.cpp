@@ -89,8 +89,9 @@ enum ultrasonic::location ultrasonic::loc_of_obj_collection(bool role){
 }
 
 enum ultrasonic::location ultrasonic::loc_of_obj_deposit(){
-    /*int angle_range[] = {CENTER+45, CENTER, CENTER-45};
+    int angle_range[] = {CENTER+45, CENTER, CENTER-45};
     int obj_detected [] = {0, 0, 0};
+
     for (int i = 0; i < sizeof(angle_range)/sizeof(int); i++){
         myservo.write(angle_range[i]);
         if (i == 0){
@@ -100,23 +101,9 @@ enum ultrasonic::location ultrasonic::loc_of_obj_deposit(){
             obj_detected[i] = 1;
         }
         delay(300);
-    }*/
-    myservo.write(CENTER);
-    if(is_there_obj(MIN_RANGE, MAX_RANGE)){
-        //Serial.println("1");
-        return center;
-    } else{
-        //Serial.println("0");
-        return none;
     }
-    // Serial.print(obj_detected[0]);
-    // Serial.print(obj_detected[1]);
-    // Serial.println(obj_detected[2]);
-    // Serial.print(obj_detected[2]);
-    // Serial.print(obj_detected[3]);
-    // Serial.println(obj_detected[4]);
 
-    /*if(obj_detected[0] && obj_detected[1] && obj_detected[2]){
+    if(obj_detected[0] && obj_detected[1] && obj_detected[2]){
         return all;
     } else if(obj_detected[0] && obj_detected[1]){
         return left_center;
@@ -132,7 +119,7 @@ enum ultrasonic::location ultrasonic::loc_of_obj_deposit(){
         return right;
     } else{
         return none;
-    }*/
+    }
 }
 
 /*
@@ -191,9 +178,8 @@ enum ultrasonic::points ultrasonic::checkLocation(int range){
         }
     }
     return lr0;
-}*/
 
-/*if (obj_detected[0] || obj_detected[1]){
+    if (obj_detected[0] || obj_detected[1]){
         loc = left;
         if ((obj_detected[2]) || (obj_detected[3]) || (obj_detected[4])){
             loc = left_center;
@@ -216,4 +202,6 @@ enum ultrasonic::points ultrasonic::checkLocation(int range){
     }
     else {
         loc = none;
-    }*/
+    }
+}*/
+
